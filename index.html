@@ -1,0 +1,5654 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>簡易格局圖工具 V5</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    "Microsoft JhengHei",
+    "Noto Sans TC",
+    Arial,
+    sans-serif;
+  background: #f4f5f7;
+  color: #222;
+  overflow: hidden;
+}
+
+header {
+  height: 58px;
+  background: #222;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.app {
+  height: calc(100vh - 58px);
+  display: flex;
+}
+
+/* =========================
+   左側控制區
+========================= */
+
+.sidebar {
+  width: 300px;
+  background: white;
+  border-right: 1px solid #ddd;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.section {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-title .section-arrow {
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.section.collapsed .section-arrow {
+  transform: rotate(-90deg);
+}
+
+.section.collapsed .section-content {
+  display: none;
+}
+
+.section h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  color: #555;
+}
+
+input,
+button {
+  font-family: inherit;
+}
+
+input[type="number"],
+input[type="text"] {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0 9px;
+  margin-bottom: 9px;
+  font-size: 14px;
+}
+
+button {
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  background: #333;
+  color: white;
+}
+
+button:hover {
+  opacity: .88;
+}
+
+button.secondary {
+  background: #777;
+}
+
+
+button.deleteBtn {
+  background: #b33a3a;
+}
+
+/* 統一按鈕樣式：
+   一般／工具列 = 深灰，啟用中與主要動作 = 藍色，刪除 = 紅色 */
+
+button.toolBtn {
+  background: #444;
+}
+
+button.toolBtn.active {
+  background: #2367a8;
+}
+
+button.primaryBtn {
+  background: #2367a8;
+}
+
+.room-item {
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  padding: 9px 10px;
+  margin-bottom: 7px;
+  cursor: pointer;
+  background: #fafafa;
+}
+
+.room-item:hover {
+  background: #f0f4f8;
+}
+
+.room-item.selected {
+  border-color: #333;
+  background: #eeeeee;
+}
+
+.room-name {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.room-size {
+  margin-top: 4px;
+  color: #666;
+  font-size: 12px;
+}
+
+.window-item {
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: #fafafa;
+  font-size: 13px;
+}
+
+.help {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #777;
+}
+
+/* =========================
+   主區域
+========================= */
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.toolbar {
+  height: 52px;
+  background: white;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+}
+
+.toolbar .active {
+  background: #2367a8;
+}
+
+.canvas-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+}
+
+.canvas-box {
+  min-width: 1000px;
+  min-height: 660px;
+  background:
+    linear-gradient(#eee 1px, transparent 1px),
+    linear-gradient(90deg, #eee 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  position: relative;
+}
+
+svg {
+  width: 1000px;
+  height: 660px;
+  display: block;
+  user-select: none;
+}
+
+/* =========================
+   圖面
+========================= */
+
+.house {
+  fill: #fdfdfd;
+  stroke: #222;
+  stroke-width: 8;
+}
+
+.room {
+  fill: rgba(100, 150, 200, .12);
+  stroke: #555;
+  stroke-width: 4;
+  cursor: move;
+}
+
+.room.selected {
+  fill: rgba(80, 130, 190, .20);
+  stroke: #222;
+}
+
+.dimension {
+  font-size: 15px;
+  fill: #444;
+  pointer-events: none;
+}
+
+.room-label {
+  font-size: 14px;
+  fill: #333;
+  pointer-events: none;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.guide {
+  stroke: #aaa;
+  stroke-width: 1;
+  stroke-dasharray: 5 5;
+  pointer-events: none;
+}
+
+/* =========================
+   房間縮放控制點
+========================= */
+
+.resize-handle {
+  fill: white;
+  stroke: #222;
+  stroke-width: 2;
+  cursor: nwse-resize;
+}
+
+.resize-handle.nw {
+  cursor: nwse-resize;
+}
+
+.resize-handle.ne {
+  cursor: nesw-resize;
+}
+
+.resize-handle.sw {
+  cursor: nesw-resize;
+}
+
+.resize-handle.se {
+  cursor: nwse-resize;
+}
+
+/* =========================
+   窗戶
+========================= */
+
+.window {
+  fill: white;
+  stroke: #2367a8;
+  stroke-width: 3;
+  cursor: pointer;
+}
+
+.window-line {
+  stroke: #2367a8;
+  stroke-width: 3;
+  pointer-events: none;
+}
+
+.window.selected {
+  stroke: #d35400;
+}
+
+.window.selected + .window-line {
+  stroke: #d35400;
+}
+
+.window-preview {
+  fill: rgba(35,103,168,.12);
+  stroke: #2367a8;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}
+
+.window-preview-line {
+  stroke: #2367a8;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}
+
+/* 窗戶 A / B 距離輔助線 */
+.window-distance-line {
+  stroke: lightblue;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+
+.window-distance {
+  font-size: 12px;
+  fill: #555;
+  pointer-events: none;
+  font-weight: normal;
+}
+
+.snap-point {
+  fill: #2367a8;
+  pointer-events: none;
+}
+
+/* =========================
+   門（牆上的洞）
+========================= */
+
+.door {
+  fill: white;
+  stroke: none;
+  cursor: pointer;
+}
+
+.door.selected {
+  stroke: #d35400;
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.door-preview {
+  fill: rgba(255,255,255,.95);
+  stroke: #8a5a2b;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+}
+
+/* =========================
+   工具列：按鈕 + 展開設定列
+========================= */
+
+.toolbar {
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.toolbar-sep {
+  width: 1px;
+  height: 24px;
+  background: #ddd;
+  margin: 0 4px;
+}
+
+.tool-panel {
+  display: none;
+  flex-shrink: 0;
+  background: #f0f4f8;
+  border-bottom: 1px solid #ddd;
+  padding: 10px 14px;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.panel-group {
+  display: none;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.panel-group.show {
+  display: flex;
+}
+
+.tool-panel label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  color: #444;
+  white-space: nowrap;
+}
+
+.tool-panel input[type="number"],
+.tool-panel input[type="text"] {
+  width: 100px;
+  height: 34px;
+  margin: 0;
+}
+
+.tool-panel input[type="text"] {
+  width: 140px;
+}
+
+.panel-hint {
+  font-size: 12px;
+  color: #777;
+}
+
+/* =========================
+   左側圖層
+========================= */
+
+.layer-header {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 14px;
+}
+
+.room-size-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.room-size-edit input {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.room-name input {
+  margin-bottom: 0;
+}
+
+.layer-del {
+  padding: 3px 8px;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* =========================
+   縮放控制 / 圖層選取
+========================= */
+
+.toolbar button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.zoom-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.zoom-label {
+  min-width: 48px;
+  text-align: center;
+  font-size: 13px;
+  color: #444;
+}
+
+.window-item.selected {
+  border-color: #333 !important;
+  background: #eeeeee;
+}
+
+/* =========================
+   狀態提示
+========================= */
+
+.status {
+  position: fixed;
+  bottom: 15px;
+  right: 20px;
+  background: rgba(30,30,30,.88);
+  color: white;
+  padding: 8px 13px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: none;
+}
+
+/* =========================
+   手機版
+========================= */
+svg { touch-action: none; }
+
+#menuBtn {
+  display: none;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  padding: 4px 10px;
+  margin-right: 6px;
+}
+
+@media (max-width: 768px) {
+
+  * { -webkit-tap-highlight-color: transparent; }
+
+  header {
+    height: 48px;
+    font-size: 17px;
+    padding: 0 10px;
+  }
+
+  #menuBtn { display: block; }
+
+  .app {
+    height: calc(100vh - 48px);
+    height: calc(100dvh - 48px);
+    position: relative;
+  }
+
+  /* 側邊欄：預設收起，☰ 開啟 */
+  .sidebar {
+    position: fixed;
+    top: 48px;
+    left: 0;
+    bottom: 56px;
+    width: 82vw;
+    max-width: 320px;
+    z-index: 40;
+    transform: translateX(-102%);
+    transition: transform .25s ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 16px rgba(0,0,0,.28);
+  }
+
+  .main { min-height: 0; }
+
+  /* 上到下：畫布 → 設定欄位 → 按鈕列（最下面） */
+  .canvas-wrap { order: 1; padding: 8px; min-height: 0; }
+
+  .tool-panel {
+    order: 2;
+    max-height: 42vh;
+    overflow-y: auto;
+    padding: 8px 10px;
+    gap: 8px 12px;
+    border-top: 1px solid #ddd;
+  }
+
+  .toolbar {
+    order: 3;
+    height: 56px;
+    padding: 0 8px;
+    border-top: 1px solid #ddd;
+    border-bottom: 0;
+  }
+
+  .tool-panel label {
+    white-space: normal;
+    flex-wrap: wrap;
+  }
+
+  .tool-panel input[type="number"],
+  .tool-panel input[type="text"] {
+    width: 90px;
+    font-size: 16px;
+  }
+
+  .status { bottom: 140px; right: 10px; }
+}
+
+
+/* 手機版：縮放按鈕浮在設定欄位上方靠右（設定欄位展開時會一起被推上去） */
+#zoomBar { display: none; }
+
+@media (max-width: 768px) {
+
+  #zoomBar {
+    display: block;
+    order: 2;
+    height: 0;
+    position: relative;
+    z-index: 5;
+    flex-shrink: 0;
+  }
+
+  .tool-panel { order: 3; }
+  .toolbar { order: 4; }
+
+  #zoomBar .zoom-controls {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    margin: 0;
+    padding: 4px 6px;
+    background: rgba(255,255,255,.94);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <button id="menuBtn" type="button" aria-label="圖層選單">☰</button>
+  <span>簡易格局圖工具 V6</span>
+</header>
+
+<div class="app">
+
+  <!-- =========================
+       左側
+  ========================== -->
+
+<aside class="sidebar">
+
+  <div class="layer-header">圖層</div>
+
+  <!-- 房屋圖層 -->
+  <div class="section">
+    <h3 class="section-title">
+      <span>房屋</span>
+      <span class="section-arrow">▼</span>
+    </h3>
+    <div class="section-content">
+      <div id="houseInfo" class="room-item"></div>
+    </div>
+  </div>
+
+  <!-- 房間圖層 -->
+  <div class="section">
+    <h3 class="section-title">
+      <span>房間 <span id="roomCount"></span></span>
+      <span class="section-arrow">▼</span>
+    </h3>
+    <div class="section-content">
+      <div id="roomList"></div>
+    </div>
+  </div>
+
+  <!-- 窗戶圖層 -->
+  <div class="section">
+    <h3 class="section-title">
+      <span>窗戶 <span id="windowCount"></span></span>
+      <span class="section-arrow">▼</span>
+    </h3>
+    <div class="section-content">
+      <div id="windowList"></div>
+    </div>
+  </div>
+
+  <!-- 門圖層 -->
+  <div class="section">
+    <h3 class="section-title">
+      <span>門 <span id="doorCount"></span></span>
+      <span class="section-arrow">▼</span>
+    </h3>
+    <div class="section-content">
+      <div id="doorList"></div>
+    </div>
+  </div>
+
+  <!-- 操作說明 -->
+  <div class="section collapsed">
+    <h3 class="section-title">
+      <span>操作說明</span>
+      <span class="section-arrow">▼</span>
+    </h3>
+    <div class="section-content">
+      <div class="help">
+        • 上方按鈕可新增房屋外框、房間、窗戶、門<br>
+        • 房間可以直接拖曳移動，靠近牆壁會自動吸附<br>
+        • 選取房間後，四角可以拖拉調整大小<br>
+        • 繪製窗戶／門：滑鼠移到牆上，點一下放置，可連續放置<br>
+        • 左側圖層可選取、修改房間名稱與尺寸、刪除物件
+      </div>
+    </div>
+  </div>
+
+</aside>
+
+
+  <!-- =========================
+       主畫布
+  ========================== -->
+
+  <main class="main">
+
+    <div class="toolbar">
+
+      <button id="toolHouse" class="toolBtn">房屋外框</button>
+      <button id="toolRoom" class="toolBtn">新增房間</button>
+      <button id="windowModeTop" class="toolBtn">繪製窗戶</button>
+      <button id="doorModeTop" class="toolBtn">繪製門</button>
+      <button id="pentModeTop" class="toolBtn">五邊形</button>
+      <button id="exportBtn" class="toolBtn">匯出</button>
+      <button id="clearBtn" class="toolBtn" style="background:#b33a3a">清空畫布</button>
+
+      <div class="zoom-controls">
+        <button id="zoomOut" class="toolBtn" title="縮小">－</button>
+        <span id="zoomLabel" class="zoom-label">100%</span>
+        <button id="zoomIn" class="toolBtn" title="放大">＋</button>
+        <button id="zoomReset" class="toolBtn" title="恢復 100%">重設</button>
+      </div>
+
+    </div>
+
+    <div id="toolPanel" class="tool-panel">
+
+      <!-- 五邊形編輯 -->
+      <div id="panelPentagon" class="panel-group">
+        <span id="pentHint" class="panel-hint">請直接點擊房屋外框或房間的角，設定斜角</span>
+        <div id="pentForm" style="display:none; align-items:center; gap:14px; flex-wrap:wrap;">
+          <strong id="pentTitle"></strong>
+          <label><span id="pentLabH"></span><input id="pentRemH" type="number" min="1"></label>
+          <label><span id="pentLabV"></span><input id="pentRemV" type="number" min="1"></label>
+          <span id="pentInfo" class="panel-hint"></span>
+          <button id="pentApply" class="primaryBtn">套用斜角</button>
+          <button id="pentRemove" class="deleteBtn">移除斜角</button>
+        </div>
+      </div>
+
+
+      <!-- 房屋外框 -->
+      <div id="panelHouse" class="panel-group">
+        <label>房屋長度（cm）<input id="houseW" type="number" value="1000"></label>
+        <label>房屋寬度（cm）<input id="houseH" type="number" value="800"></label>
+        <button id="createHouse" class="primaryBtn">建立／更新外框</button>
+      </div>
+
+      <!-- 新增房間 -->
+      <div id="panelRoom" class="panel-group">
+        <label>名稱<input id="roomName" type="text" placeholder="例如：主臥室"></label>
+        <label>長度（cm）<input id="roomW" type="number" value="300"></label>
+        <label>寬度（cm）<input id="roomH" type="number" value="300"></label>
+        <button id="addRoom" class="primaryBtn">＋ 新增房間</button>
+      </div>
+
+      <!-- 繪製窗戶 -->
+      <div id="panelWindow" class="panel-group">
+        <label>窗戶長度（cm）<input id="windowW" type="number" value="120" min="1"></label>
+        <button id="windowMode" class="primaryBtn">✕ 結束繪製窗戶</button>
+        <span class="panel-hint">把滑鼠移到牆壁附近，點一下放置，可連續放置</span>
+      </div>
+
+      <!-- 繪製門 -->
+      <div id="panelDoor" class="panel-group">
+        <label>門寬（cm）<input id="doorW" type="number" value="90" min="1"></label>
+        <button id="doorMode" class="primaryBtn">✕ 結束繪製門</button>
+        <span class="panel-hint">門的中心就是滑鼠位置，點一下開一個洞，可連續放置</span>
+      </div>
+
+    </div>
+
+
+    <div class="canvas-wrap">
+
+      <div class="canvas-box">
+
+        <svg
+          id="svg"
+          viewBox="0 0 1000 660"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+
+          <g id="houseLayer"></g>
+
+          <g id="roomLayer"></g>
+
+          <g id="windowLayer"></g>
+
+          <g id="uiLayer"></g>
+
+        </svg>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<div id="status" class="status"></div>
+
+
+<script>
+
+/* =========================================================
+   基本資料
+========================================================= */
+
+const svg = document.getElementById("svg");
+
+const houseLayer = document.getElementById("houseLayer");
+const roomLayer = document.getElementById("roomLayer");
+const windowLayer = document.getElementById("windowLayer");
+const uiLayer = document.getElementById("uiLayer");
+
+const roomList = document.getElementById("roomList");
+const windowList = document.getElementById("windowList");
+const doorList = document.getElementById("doorList");
+
+const statusBox = document.getElementById("status");
+
+let house = {
+  w: 1000,
+  h: 800,
+  x: 100,
+  y: 80,
+  scale: 0.7
+};
+
+let rooms = [];
+
+let windows = [];
+
+let doors = [];
+
+let selectedRoomId = null;
+let selectedWindowId = null;
+let selectedDoorId = null;
+
+let mode = "select";
+
+let dragData = null;
+
+let resizeData = null;
+
+let previewWindow = null;
+let previewDoor = null;
+let activePanel = null;   /* 'house' | 'room' | null */
+
+
+/* =========================================================
+   常數
+========================================================= */
+
+const SVG_W = 1000;
+const SVG_H = 660;
+
+const MAX_HOUSE_W = 800;
+const MAX_HOUSE_H = 500;
+
+const SNAP = 12;
+
+const MIN_ROOM_SIZE = 40;
+
+const WALL_THICKNESS = 8;
+
+
+/* =========================================================
+   工具
+========================================================= */
+
+function createSVG(tag, attrs = {}) {
+
+  const el = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    tag
+  );
+
+  Object.entries(attrs).forEach(([key, value]) => {
+    el.setAttribute(key, value);
+  });
+
+  return el;
+}
+
+
+function uid(prefix = "id") {
+
+  return prefix + "_" +
+    Math.random().toString(36).slice(2) +
+    Date.now().toString(36);
+
+}
+
+
+function clamp(value, min, max) {
+
+  return Math.max(min, Math.min(max, value));
+
+}
+
+
+function svgPoint(evt) {
+
+  const rect = svg.getBoundingClientRect();
+
+  return {
+    x: (evt.clientX - rect.left) *
+       (SVG_W / rect.width),
+
+    y: (evt.clientY - rect.top) *
+       (SVG_H / rect.height)
+  };
+
+}
+
+
+function showStatus(text) {
+
+  statusBox.textContent = text;
+  statusBox.style.display = "block";
+
+  clearTimeout(showStatus.timer);
+
+  showStatus.timer = setTimeout(() => {
+    statusBox.style.display = "none";
+  }, 1800);
+
+}
+
+/* =========================================================
+   設定窗
+========================================================= */
+document.querySelectorAll(".section-title").forEach(title => {
+
+  title.addEventListener("click", () => {
+
+    const section =
+      title.closest(".section");
+
+    section.classList.toggle("collapsed");
+
+  });
+
+});
+
+/* =========================================================
+   房屋
+========================================================= */
+
+function updateHouse() {
+
+  const w = Number(
+    document.getElementById("houseW").value
+  );
+
+  const h = Number(
+    document.getElementById("houseH").value
+  );
+
+  if (!w || !h || w <= 0 || h <= 0) {
+    alert("請輸入有效的房屋長寬");
+    return;
+  }
+
+  house.w = w;
+  house.h = h;
+
+  house.scale = Math.min(
+    MAX_HOUSE_W / w,
+    MAX_HOUSE_H / h
+  );
+
+  house.x =
+    (SVG_W - w * house.scale) / 2;
+
+  house.y =
+    (SVG_H - h * house.scale) / 2;
+
+  /* 房間重新限制在房屋內 */
+
+  rooms.forEach(room => {
+
+    const rw = room.w * house.scale;
+    const rh = room.h * house.scale;
+
+    room.x = clamp(
+      room.x,
+      house.x,
+      house.x + house.w * house.scale - rw
+    );
+
+    room.y = clamp(
+      room.y,
+      house.y,
+      house.y + house.h * house.scale - rh
+    );
+
+  });
+
+  render();
+
+}
+
+
+document
+  .getElementById("createHouse")
+  .addEventListener("click", updateHouse);
+
+
+/* =========================================================
+   房間
+========================================================= */
+
+function addRoom() {
+
+  const name =
+    document.getElementById("roomName").value.trim()
+    || "房間";
+
+  const w =
+    Number(document.getElementById("roomW").value);
+
+  const h =
+    Number(document.getElementById("roomH").value);
+
+  if (!w || !h || w <= 0 || h <= 0) {
+
+    alert("請輸入有效的房間長寬");
+    return;
+
+  }
+
+  const room = {
+
+    id: uid("room"),
+
+    name,
+
+    w,
+
+    h,
+
+    x: house.x + 20,
+
+    y: house.y + 20
+
+  };
+
+
+  /* 如果房間太大，縮小初始位置 */
+
+  const maxW = house.w;
+
+  const maxH = house.h;
+
+  room.w =
+    Math.min(room.w, maxW);
+
+  room.h =
+    Math.min(room.h, maxH);
+
+
+  const roomPixelW =
+    room.w * house.scale;
+
+  const roomPixelH =
+    room.h * house.scale;
+
+
+  room.x =
+    house.x +
+    Math.max(0, (house.w * house.scale - roomPixelW) / 2);
+
+  room.y =
+    house.y +
+    Math.max(0, (house.h * house.scale - roomPixelH) / 2);
+
+
+  rooms.push(room);
+
+  selectedRoomId = room.id;
+
+  selectedWindowId = null;
+
+  render();
+
+}
+
+
+document
+  .getElementById("addRoom")
+  .addEventListener("click", addRoom);
+
+
+/* =========================================================
+   房間尺寸換算
+========================================================= */
+
+function roomPixelWidth(room) {
+
+  return room.w * house.scale;
+
+}
+
+
+function roomPixelHeight(room) {
+
+  return room.h * house.scale;
+
+}
+
+
+function roomFromPoint(x, y) {
+
+  for (let i = rooms.length - 1; i >= 0; i--) {
+
+    const room = rooms[i];
+
+    const w = roomPixelWidth(room);
+    const h = roomPixelHeight(room);
+
+    if (
+      x >= room.x &&
+      x <= room.x + w &&
+      y >= room.y &&
+      y <= room.y + h
+    ) {
+      return room;
+    }
+
+  }
+
+  return null;
+
+}
+
+
+/* =========================================================
+   房間拖曳
+========================================================= */
+
+function startRoomDrag(evt, room) {
+
+  if (mode !== "select") return;
+
+  const p = svgPoint(evt);
+
+  selectedRoomId = room.id;
+  selectedWindowId = null;
+
+  dragData = {
+
+    room,
+
+    offsetX: p.x - room.x,
+
+    offsetY: p.y - room.y
+
+  };
+
+  evt.stopPropagation();
+
+  render();
+
+}
+
+
+function moveRoomDrag(evt) {
+
+  if (!dragData) return;
+
+  const p = svgPoint(evt);
+
+  const room = dragData.room;
+
+  const rw = roomPixelWidth(room);
+  const rh = roomPixelHeight(room);
+
+  let newX =
+    p.x - dragData.offsetX;
+
+  let newY =
+    p.y - dragData.offsetY;
+
+
+  /* 房屋邊界 */
+
+  newX = clamp(
+    newX,
+    house.x,
+    house.x +
+      house.w * house.scale -
+      rw
+  );
+
+  newY = clamp(
+    newY,
+    house.y,
+    house.y +
+      house.h * house.scale -
+      rh
+  );
+
+
+  /* 自動吸附 */
+
+  const snapped =
+    snapRoomPosition(
+      room,
+      newX,
+      newY
+    );
+
+  room.x = snapped.x;
+  room.y = snapped.y;
+
+  render();
+
+}
+
+
+function stopRoomDrag() {
+
+  dragData = null;
+
+}
+
+
+/* =========================================================
+   房間自動吸附
+========================================================= */
+
+function snapRoomPosition(room, x, y) {
+
+  const rw = roomPixelWidth(room);
+  const rh = roomPixelHeight(room);
+
+  const houseRight =
+    house.x +
+    house.w * house.scale;
+
+  const houseBottom =
+    house.y +
+    house.h * house.scale;
+
+
+  let sx = x;
+  let sy = y;
+
+
+  /* 房屋牆 */
+
+  if (
+    Math.abs(x - house.x) <= SNAP
+  ) {
+    sx = house.x;
+  }
+
+  if (
+    Math.abs(
+      x + rw - houseRight
+    ) <= SNAP
+  ) {
+    sx = houseRight - rw;
+  }
+
+  if (
+    Math.abs(y - house.y) <= SNAP
+  ) {
+    sy = house.y;
+  }
+
+  if (
+    Math.abs(
+      y + rh - houseBottom
+    ) <= SNAP
+  ) {
+    sy = houseBottom - rh;
+  }
+
+
+  /* 其他房間 */
+
+  rooms.forEach(other => {
+
+    if (other.id === room.id) return;
+
+    const ow = roomPixelWidth(other);
+    const oh = roomPixelHeight(other);
+
+    const ox1 = other.x;
+    const ox2 = other.x + ow;
+
+    const oy1 = other.y;
+    const oy2 = other.y + oh;
+
+
+    /* 左右牆 */
+
+    if (
+      Math.abs(
+        x + rw - ox1
+      ) <= SNAP
+    ) {
+
+      if (
+        y + rh >= oy1 &&
+        y <= oy2
+      ) {
+        sx = ox1 - rw;
+      }
+
+    }
+
+    if (
+      Math.abs(
+        x - ox2
+      ) <= SNAP
+    ) {
+
+      if (
+        y + rh >= oy1 &&
+        y <= oy2
+      ) {
+        sx = ox2;
+      }
+
+    }
+
+
+    /* 上下牆 */
+
+    if (
+      Math.abs(
+        y + rh - oy1
+      ) <= SNAP
+    ) {
+
+      if (
+        x + rw >= ox1 &&
+        x <= ox2
+      ) {
+        sy = oy1 - rh;
+      }
+
+    }
+
+    if (
+      Math.abs(
+        y - oy2
+      ) <= SNAP
+    ) {
+
+      if (
+        x + rw >= ox1 &&
+        x <= ox2
+      ) {
+        sy = oy2;
+      }
+
+    }
+
+  });
+
+
+  sx = clamp(
+    sx,
+    house.x,
+    houseRight - rw
+  );
+
+  sy = clamp(
+    sy,
+    house.y,
+    houseBottom - rh
+  );
+
+
+  return {
+    x: sx,
+    y: sy
+  };
+
+}
+
+
+/* =========================================================
+   房間四角縮放
+========================================================= */
+
+function startResize(evt, room, handle) {
+
+  if (mode !== "select") return;
+
+  evt.stopPropagation();
+
+  const p = svgPoint(evt);
+
+  selectedRoomId = room.id;
+  selectedWindowId = null;
+
+  resizeData = {
+
+    room,
+
+    handle,
+
+    startX: p.x,
+
+    startY: p.y,
+
+    originalX: room.x,
+
+    originalY: room.y,
+
+    originalW: room.w,
+
+    originalH: room.h
+
+  };
+
+  render();
+
+}
+
+
+function moveResize(evt) {
+
+  if (!resizeData) return;
+
+  const p = svgPoint(evt);
+
+  const data = resizeData;
+
+  const room = data.room;
+
+  const dx =
+    p.x - data.startX;
+
+  const dy =
+    p.y - data.startY;
+
+
+  let left =
+    data.originalX;
+
+  let top =
+    data.originalY;
+
+  let right =
+    data.originalX +
+    data.originalW *
+    house.scale;
+
+  let bottom =
+    data.originalY +
+    data.originalH *
+    house.scale;
+
+
+  /* =========================
+     依照拖曳方向計算新位置
+  ========================= */
+
+  if (data.handle.includes("w")) {
+    left += dx;
+  }
+
+  if (data.handle.includes("e")) {
+    right += dx;
+  }
+
+  if (data.handle.includes("n")) {
+    top += dy;
+  }
+
+  if (data.handle.includes("s")) {
+    bottom += dy;
+  }
+
+
+  /* =========================
+     最小尺寸
+  ========================= */
+
+  if (
+    right - left <
+    MIN_ROOM_SIZE
+  ) {
+
+    if (data.handle.includes("w")) {
+
+      left =
+        right -
+        MIN_ROOM_SIZE;
+
+    } else {
+
+      right =
+        left +
+        MIN_ROOM_SIZE;
+
+    }
+
+  }
+
+
+  if (
+    bottom - top <
+    MIN_ROOM_SIZE
+  ) {
+
+    if (data.handle.includes("n")) {
+
+      top =
+        bottom -
+        MIN_ROOM_SIZE;
+
+    } else {
+
+      bottom =
+        top +
+        MIN_ROOM_SIZE;
+
+    }
+
+  }
+
+
+  /* =========================
+     房屋邊界
+  ========================= */
+
+  const houseRight =
+    house.x +
+    house.w *
+    house.scale;
+
+  const houseBottom =
+    house.y +
+    house.h *
+    house.scale;
+
+
+  if (left < house.x) {
+    left = house.x;
+  }
+
+  if (top < house.y) {
+    top = house.y;
+  }
+
+  if (right > houseRight) {
+    right = houseRight;
+  }
+
+  if (bottom > houseBottom) {
+    bottom = houseBottom;
+  }
+
+
+  /* =========================
+     縮放吸附
+  ========================= */
+
+  const SNAP_DISTANCE = 10;
+
+
+  /*
+     找附近的垂直線
+     包含：
+     1. 房屋左牆
+     2. 房屋右牆
+     3. 其他房間左右牆
+  */
+
+  const verticalLines = [
+
+    house.x,
+
+    houseRight
+
+  ];
+
+
+  rooms.forEach(other => {
+
+    if (
+      other.id === room.id
+    ) {
+      return;
+    }
+
+    const otherRight =
+      other.x +
+      other.w *
+      house.scale;
+
+    verticalLines.push(
+      other.x,
+      otherRight
+    );
+
+  });
+
+
+  /*
+     找附近的水平線
+     包含：
+     1. 房屋上牆
+     2. 房屋下牆
+     3. 其他房間上下牆
+  */
+
+  const horizontalLines = [
+
+    house.y,
+
+    houseBottom
+
+  ];
+
+
+  rooms.forEach(other => {
+
+    if (
+      other.id === room.id
+    ) {
+      return;
+    }
+
+    const otherBottom =
+      other.y +
+      other.h *
+      house.scale;
+
+    horizontalLines.push(
+      other.y,
+      otherBottom
+    );
+
+  });
+
+
+  /* =========================
+     左右邊吸附
+  ========================= */
+
+  if (
+    data.handle.includes("w")
+  ) {
+
+    let nearest = null;
+    let minDistance =
+      SNAP_DISTANCE;
+
+
+    verticalLines.forEach(x => {
+
+      const distance =
+        Math.abs(
+          left - x
+        );
+
+
+      if (
+        distance <=
+        minDistance
+      ) {
+
+        minDistance =
+          distance;
+
+        nearest = x;
+
+      }
+
+    });
+
+
+    if (nearest !== null) {
+
+      left = nearest;
+
+    }
+
+  }
+
+
+  if (
+    data.handle.includes("e")
+  ) {
+
+    let nearest = null;
+    let minDistance =
+      SNAP_DISTANCE;
+
+
+    verticalLines.forEach(x => {
+
+      const distance =
+        Math.abs(
+          right - x
+        );
+
+
+      if (
+        distance <=
+        minDistance
+      ) {
+
+        minDistance =
+          distance;
+
+        nearest = x;
+
+      }
+
+    });
+
+
+    if (nearest !== null) {
+
+      right = nearest;
+
+    }
+
+  }
+
+
+  /* =========================
+     上下邊吸附
+  ========================= */
+
+  if (
+    data.handle.includes("n")
+  ) {
+
+    let nearest = null;
+    let minDistance =
+      SNAP_DISTANCE;
+
+
+    horizontalLines.forEach(y => {
+
+      const distance =
+        Math.abs(
+          top - y
+        );
+
+
+      if (
+        distance <=
+        minDistance
+      ) {
+
+        minDistance =
+          distance;
+
+        nearest = y;
+
+      }
+
+    });
+
+
+    if (nearest !== null) {
+
+      top = nearest;
+
+    }
+
+  }
+
+
+  if (
+    data.handle.includes("s")
+  ) {
+
+    let nearest = null;
+    let minDistance =
+      SNAP_DISTANCE;
+
+
+    horizontalLines.forEach(y => {
+
+      const distance =
+        Math.abs(
+          bottom - y
+        );
+
+
+      if (
+        distance <=
+        minDistance
+      ) {
+
+        minDistance =
+          distance;
+
+        nearest = y;
+
+      }
+
+    });
+
+
+    if (nearest !== null) {
+
+      bottom = nearest;
+
+    }
+
+  }
+
+
+  /* =========================
+     吸附後再次確認最小尺寸
+  ========================= */
+
+  if (
+    right - left <
+    MIN_ROOM_SIZE
+  ) {
+
+    if (
+      data.handle.includes("w")
+    ) {
+
+      left =
+        right -
+        MIN_ROOM_SIZE;
+
+    } else {
+
+      right =
+        left +
+        MIN_ROOM_SIZE;
+
+    }
+
+  }
+
+
+  if (
+    bottom - top <
+    MIN_ROOM_SIZE
+  ) {
+
+    if (
+      data.handle.includes("n")
+    ) {
+
+      top =
+        bottom -
+        MIN_ROOM_SIZE;
+
+    } else {
+
+      bottom =
+        top +
+        MIN_ROOM_SIZE;
+
+    }
+
+  }
+
+
+  /* =========================
+     更新房間
+  ========================= */
+
+  room.x = left;
+
+  room.y = top;
+
+  room.w =
+    (right - left) /
+    house.scale;
+
+  room.h =
+    (bottom - top) /
+    house.scale;
+
+
+  render();
+
+}
+
+
+function stopResize() {
+
+  resizeData = null;
+
+}
+
+
+/* =========================================================
+   建立房間縮放控制點
+========================================================= */
+
+function renderResizeHandles(room) {
+
+  const w =
+    roomPixelWidth(room);
+
+  const h =
+    roomPixelHeight(room);
+
+  const points = {
+
+    nw: [room.x, room.y],
+
+    ne: [room.x + w, room.y],
+
+    sw: [room.x, room.y + h],
+
+    se: [room.x + w, room.y + h]
+
+  };
+
+
+  Object.entries(points).forEach(
+    ([handle, [x, y]]) => {
+
+      const rect =
+        createSVG("rect", {
+
+          x: x - 6,
+
+          y: y - 6,
+
+          width: 12,
+
+          height: 12,
+
+          rx: 2,
+
+          class:
+            "resize-handle " +
+            handle
+
+        });
+
+
+      rect.addEventListener(
+        "pointerdown",
+        evt =>
+          startResize(
+            evt,
+            room,
+            handle
+          )
+      );
+
+
+      uiLayer.appendChild(rect);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   刪除房間
+========================================================= */
+
+function removeRoom(id) {
+
+  rooms = rooms.filter(room => room.id !== id);
+
+  /* 該房間牆上的窗戶一起移除（門在 render 時會自動清掉） */
+  windows = windows.filter(
+    w => !(w.parentType === "room" && w.parentId === id)
+  );
+
+  if (selectedRoomId === id) {
+    selectedRoomId = null;
+  }
+
+  render();
+
+}
+
+
+/* =========================================================
+   窗戶
+========================================================= */
+
+/*
+  wall:
+
+  "top"
+  "bottom"
+  "left"
+  "right"
+
+  parentType:
+
+  "house"
+  "room"
+*/
+
+
+function getAllWalls() {
+
+  const walls = [];
+
+  /* 房屋四面 */
+
+  walls.push({
+
+    type: "house",
+
+    id: "house",
+
+    wall: "top",
+
+    x1: house.x,
+
+    y1: house.y,
+
+    x2:
+      house.x +
+      house.w *
+      house.scale,
+
+    y2: house.y
+
+  });
+
+
+  walls.push({
+
+    type: "house",
+
+    id: "house",
+
+    wall: "bottom",
+
+    x1: house.x,
+
+    y1:
+      house.y +
+      house.h *
+      house.scale,
+
+    x2:
+      house.x +
+      house.w *
+      house.scale,
+
+    y2:
+      house.y +
+      house.h *
+      house.scale
+
+  });
+
+
+  walls.push({
+
+    type: "house",
+
+    id: "house",
+
+    wall: "left",
+
+    x1: house.x,
+
+    y1: house.y,
+
+    x2: house.x,
+
+    y2:
+      house.y +
+      house.h *
+      house.scale
+
+  });
+
+
+  walls.push({
+
+    type: "house",
+
+    id: "house",
+
+    wall: "right",
+
+    x1:
+      house.x +
+      house.w *
+      house.scale,
+
+    y1: house.y,
+
+    x2:
+      house.x +
+      house.w *
+      house.scale,
+
+    y2:
+      house.y +
+      house.h *
+      house.scale
+
+  });
+
+
+  /* 房間四面 */
+
+  rooms.forEach(room => {
+
+    const x1 = room.x;
+    const y1 = room.y;
+
+    const x2 =
+      room.x +
+      roomPixelWidth(room);
+
+    const y2 =
+      room.y +
+      roomPixelHeight(room);
+
+
+    walls.push({
+
+      type: "room",
+
+      id: room.id,
+
+      wall: "top",
+
+      x1, y1, x2, y2: y1
+
+    });
+
+
+    walls.push({
+
+      type: "room",
+
+      id: room.id,
+
+      wall: "bottom",
+
+      x1, y1: y2, x2, y2
+
+    });
+
+
+    walls.push({
+
+      type: "room",
+
+      id: room.id,
+
+      wall: "left",
+
+      x1, y1, x2: x1, y2
+
+    });
+
+
+    walls.push({
+
+      type: "room",
+
+      id: room.id,
+
+      wall: "right",
+
+      x1: x2, y1, x2, y2
+
+    });
+
+  });
+
+
+  return walls;
+
+}
+
+
+/* =========================================================
+   找到滑鼠附近的牆
+========================================================= */
+
+function findNearestWall(x, y) {
+
+  const walls =
+    getAllWalls();
+
+  let best = null;
+
+  let bestDistance = Infinity;
+
+
+  walls.forEach(wall => {
+
+    let distance;
+
+    let position;
+
+    let valid = false;
+
+
+    if (
+      wall.wall === "top" ||
+      wall.wall === "bottom"
+    ) {
+
+      if (
+        x >= wall.x1 - 20 &&
+        x <= wall.x2 + 20
+      ) {
+
+        distance =
+          Math.abs(
+            y - wall.y1
+          );
+
+        position =
+          clamp(
+            x,
+            wall.x1,
+            wall.x2
+          );
+
+        valid = true;
+
+      }
+
+    } else {
+
+      if (
+        y >= wall.y1 - 20 &&
+        y <= wall.y2 + 20
+      ) {
+
+        distance =
+          Math.abs(
+            x - wall.x1
+          );
+
+        position =
+          clamp(
+            y,
+            wall.y1,
+            wall.y2
+          );
+
+        valid = true;
+
+      }
+
+    }
+
+
+    if (
+      valid &&
+      distance < bestDistance &&
+      distance <= 25
+    ) {
+
+      bestDistance = distance;
+
+      best = {
+
+        ...wall,
+
+        position
+
+      };
+
+    }
+
+  });
+
+
+  return best;
+
+}
+
+
+/* =========================================================
+   窗戶尺寸
+========================================================= */
+
+function windowPixelLength(lengthCm) {
+
+  return lengthCm *
+    house.scale;
+
+}
+
+
+/* =========================================================
+   建立窗戶預覽
+========================================================= */
+function updateWindowPreview(evt) {
+
+  if (mode !== "window") return;
+
+  const p = svgPoint(evt);
+
+  const wall =
+    findNearestWall(
+      p.x,
+      p.y
+    );
+
+
+  windowLayer
+    .querySelectorAll(".preview")
+    .forEach(el => el.remove());
+
+
+  if (!wall) {
+
+    previewWindow = null;
+
+    return;
+
+  }
+
+
+  const lengthCm =
+    Number(
+      document.getElementById(
+        "windowW"
+      ).value
+    );
+
+
+  if (
+    !lengthCm ||
+    lengthCm <= 0
+  ) {
+
+    previewWindow = null;
+
+    return;
+
+  }
+
+
+  const length =
+    windowPixelLength(
+      lengthCm
+    );
+
+
+  /*
+    窗戶中心固定在牆面吸附位置
+  */
+
+  const center =
+    wall.position;
+
+
+  let rect;
+
+
+  /*
+    水平牆
+  */
+
+  if (
+    wall.wall === "top" ||
+    wall.wall === "bottom"
+  ) {
+
+    rect = {
+
+      x:
+        center -
+        length / 2,
+
+      y:
+        wall.y1 -
+        (WALL_THICKNESS + 6) / 2,
+
+      width:
+        length,
+
+      height:
+        WALL_THICKNESS + 6
+
+    };
+
+  }
+
+
+  /*
+    垂直牆
+  */
+
+  else {
+
+    rect = {
+
+      x:
+        wall.x1 -
+        (WALL_THICKNESS + 6) / 2,
+
+      y:
+        center -
+        length / 2,
+
+      width:
+        WALL_THICKNESS + 6,
+
+      height:
+        length
+
+    };
+
+  }
+
+
+  previewWindow = {
+
+    wall,
+
+    rect,
+
+    lengthCm
+
+  };
+
+
+  /*
+    ============================
+    窗戶本體
+    ============================
+  */
+
+  const preview =
+    createSVG(
+      "rect",
+      {
+
+        ...rect,
+
+        class:
+          "window-preview preview"
+
+      }
+    );
+
+
+  /*
+    ============================
+    窗戶中央線
+    ============================
+  */
+
+  const lineAttrs =
+    wall.wall === "top" ||
+    wall.wall === "bottom"
+
+    ? {
+
+        x1:
+          rect.x,
+
+        y1:
+          wall.y1,
+
+        x2:
+          rect.x +
+          rect.width,
+
+        y2:
+          wall.y1
+
+      }
+
+    : {
+
+        x1:
+          wall.x1,
+
+        y1:
+          rect.y,
+
+        x2:
+          wall.x1,
+
+        y2:
+          rect.y +
+          rect.height
+
+      };
+
+
+  const line =
+    createSVG(
+      "line",
+      {
+
+        ...lineAttrs,
+
+        class:
+          "window-preview-line preview"
+
+      }
+    );
+
+
+  windowLayer.appendChild(
+    preview
+  );
+
+  windowLayer.appendChild(
+    line
+  );
+
+
+  /*
+    ============================
+    計算窗戶兩端距離
+    ============================
+  */
+
+  const wallPixelLength =
+    (
+      wall.wall === "top" ||
+      wall.wall === "bottom"
+    )
+      ? Math.abs(
+          wall.x2 -
+          wall.x1
+        )
+      : Math.abs(
+          wall.y2 -
+          wall.y1
+        );
+
+
+  /*
+    目前窗戶中心距離牆起點的像素
+  */
+
+  const centerPixel =
+    (
+      wall.wall === "top" ||
+      wall.wall === "bottom"
+    )
+      ? center -
+        wall.x1
+      : center -
+        wall.y1;
+
+
+  /*
+    像素 → cm
+  */
+
+  const pixelToCm =
+    wallPixelLength > 0
+      ? (
+          (
+            wall.wall === "top" ||
+            wall.wall === "bottom"
+          )
+            ? (
+                wallPixelLength /
+                (
+                  wall.type === "house"
+                    ? house.w
+                    : rooms.find(
+                        r =>
+                          r.id ===
+                          wall.id
+                      )?.w || 1
+                )
+              )
+            : (
+                wallPixelLength /
+                (
+                  wall.type === "house"
+                    ? house.h
+                    : rooms.find(
+                        r =>
+                          r.id ===
+                          wall.id
+                      )?.h || 1
+                )
+              )
+        )
+      : 1;
+
+
+  /*
+    窗戶兩端位置
+  */
+
+  const halfLength =
+    length / 2;
+
+
+  const startPixel =
+    centerPixel -
+    halfLength;
+
+
+  const endPixel =
+    centerPixel +
+    halfLength;
+
+
+  /*
+    轉換成實際 cm
+  */
+
+  const startCm =
+    Math.round(
+      startPixel /
+      pixelToCm
+    );
+
+
+  const endCm =
+    Math.round(
+      (
+        wallPixelLength -
+        endPixel
+      ) /
+      pixelToCm
+    );
+
+
+  /*
+    ============================
+    建立距離文字
+    ============================
+  */
+
+  const distanceA =
+    createSVG(
+      "text",
+      {
+
+        class:
+          "window-distance preview",
+
+        x:
+          wall.wall === "top" ||
+          wall.wall === "bottom"
+
+            ? (
+                wall.x1 +
+                rect.x
+              ) / 2
+
+            : wall.x1 - 12,
+
+        y:
+          wall.wall === "top" ||
+          wall.wall === "bottom"
+
+            ? wall.y1 - 14
+
+            : (
+                wall.y1 +
+                rect.y
+              ) / 2,
+
+        "text-anchor":
+          wall.wall === "top" ||
+          wall.wall === "bottom"
+
+            ? "middle"
+
+            : "end"
+
+      }
+    );
+
+
+  distanceA.textContent =
+    `A ${startCm} cm`;
+
+
+  const distanceB =
+    createSVG(
+      "text",
+      {
+
+        class:
+          "window-distance preview",
+
+        x:
+          wall.wall === "top" ||
+          wall.wall === "bottom"
+
+            ? (
+                rect.x +
+                rect.width +
+                wall.x2
+              ) / 2
+
+            : wall.x1 + 12,
+
+        y:
+          wall.wall === "top" ||
+          wall.wall === "bottom"
+
+            ? wall.y1 - 14
+
+            : (
+                rect.y +
+                rect.height +
+                wall.y2
+              ) / 2,
+
+        "text-anchor":
+          wall.wall === "top" ||
+          wall.wall === "bottom"
+
+            ? "middle"
+
+            : "start"
+
+      }
+    );
+
+
+  distanceB.textContent =
+    `B ${endCm} cm`;
+
+
+  windowLayer.appendChild(
+    distanceA
+  );
+
+  windowLayer.appendChild(
+    distanceB
+  );
+  
+    /* =========================
+     A / B 距離輔助線
+  ========================= */
+
+  if (
+    wall.wall === "top" ||
+    wall.wall === "bottom"
+  ) {
+
+    const lineA =
+      createSVG(
+        "line",
+        {
+          x1: wall.x1,
+          y1: wall.y1,
+          x2: rect.x,
+          y2: wall.y1,
+          class:
+            "window-distance-line preview"
+        }
+      );
+
+    const lineB =
+      createSVG(
+        "line",
+        {
+          x1:
+            rect.x +
+            rect.width,
+          y1: wall.y1,
+          x2: wall.x2,
+          y2: wall.y1,
+          class:
+            "window-distance-line preview"
+        }
+      );
+
+    windowLayer.appendChild(lineA);
+    windowLayer.appendChild(lineB);
+
+  } else {
+
+    const lineA =
+      createSVG(
+        "line",
+        {
+          x1: wall.x1,
+          y1: wall.y1,
+          x2: wall.x1,
+          y2: rect.y,
+          class:
+            "window-distance-line preview"
+        }
+      );
+
+    const lineB =
+      createSVG(
+        "line",
+        {
+          x1: wall.x1,
+          y1:
+            rect.y +
+            rect.height,
+          x2: wall.x1,
+          y2: wall.y2,
+          class:
+            "window-distance-line preview"
+        }
+      );
+
+    windowLayer.appendChild(lineA);
+    windowLayer.appendChild(lineB);
+
+  }
+
+}
+
+/* =========================================================
+   放置窗戶
+========================================================= */
+
+function placeWindow(evt) {
+
+  if (
+    mode !== "window" ||
+    !previewWindow
+  ) {
+    return;
+  }
+
+
+  const w =
+    previewWindow;
+
+
+  /*
+    取得滑鼠點擊位置
+  */
+
+  const p =
+    svgPoint(evt);
+
+
+  /*
+    把滑鼠點擊位置轉換成
+    「相對於牆起點的距離」
+
+    renderWindow() 使用的 center
+    就是這個數值。
+  */
+
+  let center;
+
+
+  if (
+    w.wall.wall === "top" ||
+    w.wall.wall === "bottom"
+  ) {
+
+    center =
+      p.x -
+      w.wall.x1;
+
+  } else {
+
+    center =
+      p.y -
+      w.wall.y1;
+
+  }
+
+
+  const newWindow = {
+
+    id:
+      uid("window"),
+
+    lengthCm:
+      w.lengthCm,
+
+    parentType:
+      w.wall.type,
+
+    parentId:
+      w.wall.id,
+
+    wall:
+      w.wall.wall,
+
+    center:
+      center
+
+  };
+
+
+  windows.push(
+    newWindow
+  );
+
+
+  selectedWindowId =
+    newWindow.id;
+
+  selectedRoomId =
+    null;
+
+  previewWindow =
+    null;
+
+
+  render();
+
+  showStatus(
+    "窗戶已建立"
+  );
+
+}
+
+/* =========================================================
+   窗戶列表
+========================================================= */
+
+
+function renderWindowList() {
+
+  windowList.innerHTML = "";
+
+
+  if (windows.length === 0) {
+
+    windowList.innerHTML =
+      '<div class="help">尚未建立窗戶</div>';
+
+    return;
+
+  }
+
+
+  windows.forEach(
+    (win, index) => {
+
+      const div =
+        document.createElement(
+          "div"
+        );
+
+      div.className =
+        "window-item";
+
+
+      if (
+        selectedWindowId ===
+        win.id
+      ) {
+
+        div.style.borderColor =
+          "#2367a8";
+
+      }
+
+
+      div.innerHTML = `
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:8px;
+        ">
+
+          <strong>
+            窗戶 ${index + 1}
+          </strong>
+
+          <button
+            type="button"
+            class="deleteBtn"
+            style="
+              padding:4px 8px;
+              font-size:12px;
+            "
+          >
+            刪除
+          </button>
+
+        </div>
+
+        <div style="
+          color:#666;
+          margin-top:5px;
+        ">
+          長度 ${Math.round(win.lengthCm)} cm
+        </div>
+      `;
+
+
+      /* =========================
+         點窗戶項目 → 選取窗戶
+      ========================= */
+
+      div.addEventListener(
+        "click",
+        () => {
+
+          selectedWindowId =
+            win.id;
+
+          selectedRoomId =
+            null;
+
+          mode =
+            "select";
+
+          updateModeButtons();
+
+          render();
+
+        }
+      );
+
+
+      /* =========================
+         刪除按鈕
+      ========================= */
+
+      const deleteBtn =
+        div.querySelector(
+          ".deleteBtn"
+        );
+
+
+      deleteBtn.addEventListener(
+        "click",
+        evt => {
+
+          evt.stopPropagation();
+
+
+          windows =
+            windows.filter(
+              item =>
+                item.id !==
+                win.id
+            );
+
+
+          if (
+            selectedWindowId ===
+            win.id
+          ) {
+
+            selectedWindowId =
+              null;
+
+          }
+
+
+          render();
+
+        }
+      );
+
+
+      windowList.appendChild(
+        div
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   繪製窗戶
+========================================================= */
+
+function renderWindow(win) {
+
+  const parent =
+    win.parentType === "house"
+      ? house
+      : rooms.find(
+          r =>
+            r.id === win.parentId
+        );
+
+
+  if (!parent) return;
+
+
+  let wallX;
+  let wallY;
+
+  let wallLength;
+
+
+  if (
+    win.parentType === "house"
+  ) {
+
+    if (
+      win.wall === "top" ||
+      win.wall === "bottom"
+    ) {
+
+      wallX = house.x;
+      wallY =
+        win.wall === "top"
+          ? house.y
+          : house.y +
+            house.h *
+            house.scale;
+
+      wallLength =
+        house.w *
+        house.scale;
+
+    } else {
+
+      wallX =
+        win.wall === "left"
+          ? house.x
+          : house.x +
+            house.w *
+            house.scale;
+
+      wallY =
+        house.y;
+
+      wallLength =
+        house.h *
+        house.scale;
+
+    }
+
+  } else {
+
+    const room = parent;
+
+    const rw =
+      roomPixelWidth(room);
+
+    const rh =
+      roomPixelHeight(room);
+
+
+    if (
+      win.wall === "top" ||
+      win.wall === "bottom"
+    ) {
+
+      wallX =
+        room.x;
+
+      wallY =
+        win.wall === "top"
+          ? room.y
+          : room.y + rh;
+
+      wallLength =
+        rw;
+
+    } else {
+
+      wallX =
+        win.wall === "left"
+          ? room.x
+          : room.x + rw;
+
+      wallY =
+        room.y;
+
+      wallLength =
+        rh;
+
+    }
+
+  }
+
+
+  const length =
+    windowPixelLength(
+      win.lengthCm
+    );
+
+
+  let center =
+    win.center;
+
+
+
+  let rect;
+
+
+  if (
+    win.wall === "top" ||
+    win.wall === "bottom"
+  ) {
+
+    rect = {
+
+      x:
+        wallX +
+        center -
+        length / 2,
+
+      y:
+        wallY -
+        (WALL_THICKNESS + 6) / 2,
+
+      width: length,
+
+      height:
+        WALL_THICKNESS + 6
+
+    };
+
+  } else {
+
+    rect = {
+
+      x:
+        wallX -
+        (WALL_THICKNESS + 6) / 2,
+
+      y:
+        wallY +
+        center -
+        length / 2,
+
+      width:
+        WALL_THICKNESS + 6,
+
+      height: length
+
+    };
+
+  }
+
+
+  const selected =
+    selectedWindowId ===
+    win.id;
+
+
+  const rectEl =
+    createSVG(
+      "rect",
+      {
+
+        ...rect,
+
+        class:
+          "window" +
+          (selected
+            ? " selected"
+            : "")
+
+      }
+    );
+
+
+  rectEl.dataset.id =
+    win.id;
+
+
+  rectEl.addEventListener(
+    "click",
+    evt => {
+
+      evt.stopPropagation();
+
+      if (
+        mode === "select"
+      ) {
+
+        selectedWindowId =
+          win.id;
+
+        selectedRoomId =
+          null;
+
+        render();
+
+      }
+
+    }
+  );
+
+
+  const line =
+    createSVG(
+      "line",
+      win.wall === "top" ||
+      win.wall === "bottom"
+
+      ? {
+
+          x1: rect.x,
+          y1: wallY,
+
+          x2:
+            rect.x +
+            rect.width,
+
+          y2: wallY,
+
+          class:
+            "window-line"
+
+        }
+
+      : {
+
+          x1: wallX,
+          y1: rect.y,
+
+          x2: wallX,
+
+          y2:
+            rect.y +
+            rect.height,
+
+          class:
+            "window-line"
+
+        }
+    );
+
+
+  if (selected) {
+
+    line.style.stroke =
+      "#d35400";
+
+  }
+
+
+  windowLayer.appendChild(
+    rectEl
+  );
+
+  windowLayer.appendChild(
+    line
+  );
+
+}
+
+
+/* =========================================================
+   房間列表
+========================================================= */
+
+function renderRoomList() {
+
+  roomList.innerHTML = "";
+
+  if (rooms.length === 0) {
+
+    roomList.innerHTML =
+      '<div class="help">尚未新增房間</div>';
+
+    return;
+
+  }
+
+  rooms.forEach(room => {
+
+    const item =
+      document.createElement("div");
+
+    item.className =
+      "room-item" +
+      (
+        selectedRoomId ===
+        room.id
+          ? " selected"
+          : ""
+      );
+
+
+    item.innerHTML = `
+
+      <div class="room-name">
+        <input
+          type="text"
+          class="room-edit-name"
+          value="${escapeHTML(room.name)}"
+          placeholder="房間名稱"
+        >
+      </div>
+
+      <div class="room-size-edit">
+
+        <input
+          type="number"
+          class="room-edit-w"
+          value="${Math.round(room.w)}"
+          min="${MIN_ROOM_SIZE}"
+        >
+        <span>×</span>
+        <input
+          type="number"
+          class="room-edit-h"
+          value="${Math.round(room.h)}"
+          min="${MIN_ROOM_SIZE}"
+        >
+        <span>cm</span>
+
+      </div>
+
+    `;
+
+
+    /* =========================
+       點擊房間 → 選取
+    ========================= */
+
+    item.addEventListener(
+      "click",
+      () => {
+
+        selectedRoomId =
+          room.id;
+
+        selectedWindowId =
+          null;
+
+        mode = "select";
+
+        updateModeButtons();
+
+        render();
+
+      }
+    );
+
+
+    /* =========================
+       房間名稱修改
+    ========================= */
+
+    const nameInput =
+      item.querySelector(
+        ".room-edit-name"
+      );
+
+    nameInput.addEventListener(
+      "click",
+      event => {
+        event.stopPropagation();
+      }
+    );
+
+    nameInput.addEventListener(
+      "change",
+      event => {
+
+        room.name =
+          event.target.value.trim() ||
+          "未命名房間";
+
+        render();
+
+      }
+    );
+
+
+    /* =========================
+       房間長度修改
+    ========================= */
+
+    const widthInput =
+      item.querySelector(
+        ".room-edit-w"
+      );
+
+    widthInput.addEventListener(
+      "click",
+      event => {
+        event.stopPropagation();
+      }
+    );
+
+    widthInput.addEventListener(
+      "change",
+      event => {
+
+        let value =
+          parseFloat(
+            event.target.value
+          );
+
+        if (
+          !Number.isFinite(value) ||
+          value < MIN_ROOM_SIZE
+        ) {
+          value = MIN_ROOM_SIZE;
+        }
+
+        room.w = value;
+
+        /* 不允許超出房屋 */
+        room.w =
+          Math.min(
+            room.w,
+            house.w
+          );
+
+        /* 保持房間在房屋內 */
+        room.x = clamp(room.x, house.x, house.x + (house.w - room.w) * house.scale);
+
+        render();
+
+      }
+    );
+
+
+    /* =========================
+       房間寬度修改
+    ========================= */
+
+    const heightInput =
+      item.querySelector(
+        ".room-edit-h"
+      );
+
+    heightInput.addEventListener(
+      "click",
+      event => {
+        event.stopPropagation();
+      }
+    );
+
+    heightInput.addEventListener(
+      "change",
+      event => {
+
+        let value =
+          parseFloat(
+            event.target.value
+          );
+
+        if (
+          !Number.isFinite(value) ||
+          value < MIN_ROOM_SIZE
+        ) {
+          value = MIN_ROOM_SIZE;
+        }
+
+        room.h = value;
+
+        /* 不允許超出房屋 */
+        room.h =
+          Math.min(
+            room.h,
+            house.h
+          );
+
+        /* 保持房間在房屋內 */
+        room.y = clamp(room.y, house.y, house.y + (house.h - room.h) * house.scale);
+
+        render();
+
+      }
+    );
+
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "deleteBtn layer-del";
+    delBtn.textContent = "刪除";
+    delBtn.addEventListener("click", evt => {
+      evt.stopPropagation();
+      removeRoom(room.id);
+    });
+    item.appendChild(delBtn);
+
+    roomList.appendChild(item);
+
+  });
+
+}
+
+
+function escapeHTML(str) {
+
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+/* =========================================================
+   畫房屋
+========================================================= */
+
+function renderHouse() {
+
+  houseLayer.innerHTML = "";
+
+  const width =
+    house.w *
+    house.scale;
+
+  const height =
+    house.h *
+    house.scale;
+
+
+  const rect =
+    createSVG(
+      "rect",
+      {
+
+        x: house.x,
+
+        y: house.y,
+
+        width,
+
+        height,
+
+        class: "house"
+
+      }
+    );
+
+
+  houseLayer.appendChild(
+    rect
+  );
+
+
+  /* 長度 */
+
+  const wText =
+    createSVG(
+      "text",
+      {
+
+        x:
+          house.x +
+          width / 2,
+
+        y:
+          house.y -
+          15,
+
+        class:
+          "dimension",
+
+        "text-anchor":
+          "middle"
+
+      }
+    );
+
+
+  wText.textContent =
+    `${Math.round(house.w)} cm`;
+
+
+  houseLayer.appendChild(
+    wText
+  );
+
+
+  /* 寬度 */
+
+  const hText =
+    createSVG(
+      "text",
+      {
+
+        x:
+          house.x +
+          width +
+          15,
+
+        y:
+          house.y +
+          height / 2,
+
+        class:
+          "dimension",
+
+        "text-anchor":
+          "middle",
+
+        transform:
+          `rotate(90 ${
+            house.x +
+            width +
+            15
+          } ${
+            house.y +
+            height / 2
+          })`
+
+      }
+    );
+
+
+  hText.textContent =
+    `${Math.round(house.h)} cm`;
+
+
+  houseLayer.appendChild(
+    hText
+  );
+
+}
+
+
+/* =========================================================
+   畫房間
+========================================================= */
+
+function renderRooms() {
+
+  roomLayer.innerHTML = "";
+
+  uiLayer.innerHTML = "";
+
+
+  rooms.forEach(room => {
+
+    const width =
+      roomPixelWidth(room);
+
+    const height =
+      roomPixelHeight(room);
+
+
+    const rect =
+      createSVG(
+        "rect",
+        {
+
+          x: room.x,
+
+          y: room.y,
+
+          width,
+
+          height,
+
+          class:
+            "room" +
+            (
+              selectedRoomId ===
+              room.id
+                ? " selected"
+                : ""
+            )
+
+        }
+      );
+
+
+    rect.dataset.id =
+      room.id;
+
+
+    rect.addEventListener(
+      "pointerdown",
+      evt =>
+        startRoomDrag(
+          evt,
+          room
+        )
+    );
+
+
+    roomLayer.appendChild(
+      rect
+    );
+
+
+    /* 房間名稱 */
+
+    const label =
+      createSVG(
+        "text",
+        {
+
+          x:
+            room.x +
+            width / 2,
+
+          y:
+            room.y +
+            height / 2,
+
+          class:
+            "room-label"
+
+        }
+      );
+
+
+    label.textContent =
+      room.name;
+
+
+    roomLayer.appendChild(
+      label
+    );
+
+
+    /* 尺寸 */
+
+    const size =
+      createSVG(
+        "text",
+        {
+
+          x:
+            room.x +
+            width / 2,
+
+          y:
+            room.y +
+            height / 2 +
+            20,
+
+          class:
+            "dimension",
+
+          "text-anchor":
+            "middle"
+
+        }
+      );
+
+
+    size.textContent =
+      `${Math.round(room.w)} × ${Math.round(room.h)} cm`;
+
+
+    roomLayer.appendChild(
+      size
+    );
+
+
+    /* 選取房間 */
+
+    if (
+      selectedRoomId ===
+      room.id
+    ) {
+
+      renderResizeHandles(
+        room
+      );
+
+
+      /* 輔助線 */
+
+      const guide1 =
+        createSVG(
+          "line",
+          {
+
+            x1: house.x,
+
+            y1: room.y,
+
+            x2:
+              house.x +
+              house.w *
+              house.scale,
+
+            y2: room.y,
+
+            class: "guide"
+
+          }
+        );
+
+
+      const guide2 =
+        createSVG(
+          "line",
+          {
+
+            x1: room.x,
+
+            y1: house.y,
+
+            x2: room.x,
+
+            y2:
+              house.y +
+              house.h *
+              house.scale,
+
+            class: "guide"
+
+          }
+        );
+
+
+      uiLayer.insertBefore(
+        guide1,
+        uiLayer.firstChild
+      );
+
+      uiLayer.insertBefore(
+        guide2,
+        uiLayer.firstChild
+      );
+
+    }
+
+  });
+
+}
+
+
+/* =========================================================
+   總 Render
+========================================================= */
+
+let _prevSelRoom = null;
+let _prevSelWin = null;
+
+function render() {
+
+  /* 清除已不存在房間上的門 */
+  doors = doors.filter(d =>
+    d.parentType === "house" ||
+    rooms.some(r => r.id === d.parentId)
+  );
+
+  if (!doors.some(d => d.id === selectedDoorId)) {
+    selectedDoorId = null;
+  }
+
+  /* 選到房間或窗戶時，取消門的選取 */
+  if (
+    (selectedRoomId && selectedRoomId !== _prevSelRoom) ||
+    (selectedWindowId && selectedWindowId !== _prevSelWin)
+  ) {
+    selectedDoorId = null;
+  }
+  _prevSelRoom = selectedRoomId;
+  _prevSelWin = selectedWindowId;
+
+
+  renderHouse();
+
+  renderRooms();
+
+  /* 清除舊窗戶圖形 */
+  windowLayer.innerHTML = "";
+
+  renderWindowList();
+
+  windows.forEach(renderWindow);
+
+  doors.forEach(renderDoor);
+
+  renderDoorList();
+
+  updateLayerInfo();
+
+  renderRoomList();
+
+}
+
+
+/* =========================================================
+   模式切換
+========================================================= */
+
+function updateModeButtons() {
+
+  /* 進入繪製窗戶／門時，收起房屋／房間設定 */
+  if (mode !== "select") activePanel = null;
+
+  const $ = id => document.getElementById(id);
+
+  $("toolHouse").classList.toggle("active", activePanel === "house");
+  $("toolRoom").classList.toggle("active", activePanel === "room");
+  $("windowModeTop").classList.toggle("active", mode === "window");
+  $("doorModeTop").classList.toggle("active", mode === "door");
+
+  /* 展開哪一排設定 */
+  const show =
+    mode === "window" ? "window" :
+    mode === "door" ? "door" :
+    activePanel;
+
+  [
+    ["house", "panelHouse"],
+    ["room", "panelRoom"],
+    ["window", "panelWindow"],
+    ["door", "panelDoor"]
+  ].forEach(([name, id]) => {
+    $(id).classList.toggle("show", name === show);
+  });
+
+  $("toolPanel").style.display = show ? "flex" : "none";
+
+  /* 離開某個模式時，清掉該模式的預覽 */
+
+  if (mode !== "door") {
+    previewDoor = null;
+    windowLayer.querySelectorAll(".dpreview").forEach(el => el.remove());
+  }
+
+  if (mode !== "window") {
+    previewWindow = null;
+    windowLayer.querySelectorAll(".preview").forEach(el => el.remove());
+  }
+
+}
+
+
+/* 窗戶模式 */
+
+function enterWindowMode() {
+
+  /* =========================
+     如果目前已經是窗戶模式
+     再按一次就關閉
+  ========================= */
+
+  if (mode === "window") {
+
+    mode = "select";
+
+    previewWindow = null;
+
+    windowLayer
+      .querySelectorAll(".preview")
+      .forEach(el => el.remove());
+
+    updateModeButtons();
+
+    showStatus(
+      "已退出繪製窗戶模式"
+    );
+
+    return;
+
+  }
+
+
+  /* =========================
+     第一次點擊 → 開啟窗戶模式
+  ========================= */
+
+  const length =
+    Number(
+      document.getElementById(
+        "windowW"
+      ).value
+    );
+
+
+  if (
+    !length ||
+    length <= 0
+  ) {
+
+    alert(
+      "請先設定窗戶長度"
+    );
+
+    return;
+
+  }
+
+
+  mode = "window";
+
+  selectedRoomId = null;
+  selectedWindowId = null;
+
+  updateModeButtons();
+
+  showStatus(
+    "請將滑鼠移到牆壁附近"
+  );
+
+}
+
+
+document
+  .getElementById(
+    "windowMode"
+  )
+  .addEventListener(
+    "click",
+    enterWindowMode
+  );
+
+
+document
+  .getElementById(
+    "windowModeTop"
+  )
+  .addEventListener(
+    "click",
+    enterWindowMode
+  );
+
+
+/* =========================================================
+   SVG 事件
+========================================================= */
+
+svg.addEventListener(
+  "pointermove",
+  evt => {
+
+    if (dragData) {
+
+      moveRoomDrag(evt);
+
+      return;
+
+    }
+
+
+    if (resizeData) {
+
+      moveResize(evt);
+
+      return;
+
+    }
+
+
+    if (
+      mode === "window"
+    ) {
+
+      updateWindowPreview(
+        evt
+      );
+
+    }
+
+  }
+);
+
+
+svg.addEventListener(
+  "pointerup",
+  () => {
+
+    stopRoomDrag();
+
+    stopResize();
+
+  }
+);
+
+
+svg.addEventListener(
+  "pointerleave",
+  () => {
+
+    if (
+      mode === "window"
+    ) {
+
+      windowLayer
+        .querySelectorAll(
+          ".preview"
+        )
+        .forEach(
+          el =>
+            el.remove()
+        );
+
+      previewWindow =
+        null;
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   點擊畫布
+========================================================= */
+
+svg.addEventListener(
+  "click",
+  evt => {
+
+    if (
+      mode === "window"
+    ) {
+
+      placeWindow(evt);
+
+      return;
+
+    }
+
+
+    if (
+      evt.target === svg
+    ) {
+
+      selectedRoomId =
+        null;
+
+      selectedWindowId =
+        null;
+
+      render();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   防止拖曳選取造成瀏覽器行為
+========================================================= */
+
+svg.addEventListener(
+  "pointerdown",
+  evt => {
+
+    if (
+      mode === "window"
+    ) {
+
+      evt.preventDefault();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   初始化
+========================================================= */
+
+
+/* =========================================================
+   門（牆上的洞）
+========================================================= */
+
+/* 門寬 cm → 像素（獨立函式，不影響窗戶） */
+function doorPixelLength(widthCm) {
+  return widthCm * house.scale;
+}
+
+
+/* 依牆的方向，算出門的矩形（白色遮牆用） */
+function doorRect(horizontal, wallX, wallY, centerPx, lengthPx) {
+
+  const thick = WALL_THICKNESS + 4;
+
+  if (horizontal) {
+    return {
+      x: wallX + centerPx - lengthPx / 2,
+      y: wallY - thick / 2,
+      width: lengthPx,
+      height: thick
+    };
+  }
+
+  return {
+    x: wallX - thick / 2,
+    y: wallY + centerPx - lengthPx / 2,
+    width: thick,
+    height: lengthPx
+  };
+
+}
+
+
+/* 門預覽 */
+function updateDoorPreview(evt) {
+
+  if (mode !== "door") return;
+
+  windowLayer.querySelectorAll(".dpreview").forEach(el => el.remove());
+  previewDoor = null;
+
+  const p = svgPoint(evt);
+
+  /* 直接重複使用窗戶的牆壁判斷 */
+  const wall = findNearestWall(p.x, p.y);
+
+  if (!wall) return;
+
+  const widthCm = Number(document.getElementById("doorW").value);
+
+  if (!widthCm || widthCm <= 0) return;
+
+  const horizontal = wall.wall === "top" || wall.wall === "bottom";
+
+  const wallLen = horizontal
+    ? Math.abs(wall.x2 - wall.x1)
+    : Math.abs(wall.y2 - wall.y1);
+
+  const lengthPx = doorPixelLength(widthCm);
+
+  /* 門中心 = 滑鼠位置（只避免門超出牆的兩端） */
+  let centerPx = horizontal
+    ? p.x - wall.x1
+    : p.y - wall.y1;
+
+  if (wallLen >= lengthPx) {
+    centerPx = clamp(centerPx, lengthPx / 2, wallLen - lengthPx / 2);
+  } else {
+    centerPx = wallLen / 2;
+  }
+
+  const rect = doorRect(horizontal, wall.x1, wall.y1, centerPx, lengthPx);
+
+  previewDoor = {
+    wall,
+    widthCm,
+    center: centerPx / house.scale
+  };
+
+  windowLayer.appendChild(
+    createSVG("rect", { ...rect, class: "door-preview dpreview" })
+  );
+
+}
+
+
+/* 點擊放置門（不會自動結束模式） */
+function placeDoor() {
+
+  if (mode !== "door" || !previewDoor) return;
+
+  const d = previewDoor;
+
+  const newDoor = {
+    id: uid("door"),
+    widthCm: d.widthCm,
+    parentType: d.wall.type,
+    parentId: d.wall.id,
+    wall: d.wall.wall,
+    center: d.center        /* cm，相對於牆起點 */
+  };
+
+  doors.push(newDoor);
+
+  selectedDoorId = newDoor.id;
+  selectedRoomId = null;
+  selectedWindowId = null;
+
+  previewDoor = null;
+
+  render();
+
+  showStatus("門已建立（可繼續點擊放置）");
+
+}
+
+
+/* 畫出一個門：白色矩形把牆遮住 */
+function renderDoor(door) {
+
+  const wall = getAllWalls().find(w =>
+    w.id === door.parentId && w.wall === door.wall
+  );
+
+  if (!wall) return;
+
+  const horizontal = door.wall === "top" || door.wall === "bottom";
+
+  const wallLen = horizontal
+    ? Math.abs(wall.x2 - wall.x1)
+    : Math.abs(wall.y2 - wall.y1);
+
+  let lengthPx = Math.min(doorPixelLength(door.widthCm), wallLen);
+
+  let centerPx = clamp(
+    door.center * house.scale,
+    lengthPx / 2,
+    Math.max(lengthPx / 2, wallLen - lengthPx / 2)
+  );
+
+  const rect = doorRect(horizontal, wall.x1, wall.y1, centerPx, lengthPx);
+
+  const selected = selectedDoorId === door.id;
+
+  const el = createSVG("rect", {
+    ...rect,
+    class: "door" + (selected ? " selected" : "")
+  });
+
+  el.addEventListener("click", evt => {
+
+    if (mode !== "select") return;
+
+    evt.stopPropagation();
+
+    selectedDoorId = door.id;
+    selectedRoomId = null;
+    selectedWindowId = null;
+
+    render();
+
+  });
+
+  windowLayer.appendChild(el);
+
+}
+
+
+/* 門清單 */
+function renderDoorList() {
+
+  doorList.innerHTML = "";
+
+  if (doors.length === 0) {
+    doorList.innerHTML = '<div class="help">尚未建立門</div>';
+    return;
+  }
+
+  doors.forEach((door, index) => {
+
+    const div = document.createElement("div");
+
+    div.className = "window-item";
+
+    if (selectedDoorId === door.id) {
+      div.style.borderColor = "#8a5a2b";
+    }
+
+    div.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <strong>門 ${index + 1}</strong>
+        <button type="button" class="deleteBtn" style="padding:4px 8px; font-size:12px;">刪除</button>
+      </div>
+      <div style="color:#666; margin-top:5px;">
+        寬度 ${Math.round(door.widthCm)} cm
+      </div>
+    `;
+
+    div.addEventListener("click", () => {
+
+      selectedDoorId = door.id;
+      selectedRoomId = null;
+      selectedWindowId = null;
+
+      mode = "select";
+      updateModeButtons();
+
+      render();
+
+    });
+
+    div.querySelector(".deleteBtn").addEventListener("click", evt => {
+
+      evt.stopPropagation();
+
+      removeDoor(door.id);
+
+    });
+
+    doorList.appendChild(div);
+
+  });
+
+}
+
+
+function removeDoor(id) {
+
+  doors = doors.filter(d => d.id !== id);
+
+  if (selectedDoorId === id) {
+    selectedDoorId = null;
+  }
+
+  render();
+
+}
+
+
+/* 門模式開關 */
+function enterDoorMode() {
+
+  if (mode === "door") {
+
+    mode = "select";
+    updateModeButtons();
+    showStatus("已退出繪製門模式");
+    return;
+
+  }
+
+  const width = Number(document.getElementById("doorW").value);
+
+  if (!width || width <= 0) {
+    alert("請先設定門寬");
+    return;
+  }
+
+  mode = "door";
+
+  selectedRoomId = null;
+  selectedWindowId = null;
+  selectedDoorId = null;
+
+  render();
+  updateModeButtons();
+
+  showStatus("請將滑鼠移到牆壁附近，點一下開門");
+
+}
+
+
+document.getElementById("doorMode").addEventListener("click", enterDoorMode);
+document.getElementById("doorModeTop").addEventListener("click", enterDoorMode);
+
+
+
+/* 門相關的畫布事件（獨立監聽，不動窗戶的） */
+
+svg.addEventListener("pointermove", evt => {
+  if (mode === "door" && !dragData && !resizeData) {
+    updateDoorPreview(evt);
+  }
+});
+
+svg.addEventListener("pointerleave", () => {
+  if (mode === "door") {
+    windowLayer.querySelectorAll(".dpreview").forEach(el => el.remove());
+    previewDoor = null;
+  }
+});
+
+svg.addEventListener("pointerdown", evt => {
+  if (mode === "door") evt.preventDefault();
+});
+
+svg.addEventListener("click", evt => {
+
+  if (mode === "door") {
+    placeDoor();
+    return;
+  }
+
+  /* 點空白處取消門的選取 */
+  if (evt.target === svg && selectedDoorId) {
+    selectedDoorId = null;
+    render();
+  }
+
+});
+
+
+
+/* =========================================================
+   工具列／圖層 UI
+========================================================= */
+
+function updateLayerInfo() {
+
+  document.getElementById("houseInfo").innerHTML = `
+    <div class="room-name">房屋外框</div>
+    <div class="room-size">${Math.round(house.w)} × ${Math.round(house.h)} cm</div>
+  `;
+
+  document.getElementById("roomCount").textContent = `(${rooms.length})`;
+  document.getElementById("windowCount").textContent = `(${windows.length})`;
+  document.getElementById("doorCount").textContent = `(${doors.length})`;
+
+  syncLayerSelection();
+
+}
+
+
+/* 點房屋圖層 → 展開房屋外框設定 */
+document.getElementById("houseInfo").addEventListener("click", () => {
+  mode = "select";
+  activePanel = "house";
+  updateModeButtons();
+});
+
+
+/* 房屋外框／新增房間：點一下展開，再點一下收起 */
+function togglePanel(name) {
+
+  if (mode !== "select") {
+    mode = "select";
+  }
+
+  activePanel = (activePanel === name) ? null : name;
+
+  updateModeButtons();
+
+}
+
+document.getElementById("toolHouse")
+  .addEventListener("click", () => togglePanel("house"));
+
+document.getElementById("toolRoom")
+  .addEventListener("click", () => togglePanel("room"));
+
+
+/* 新增房間後清空名稱，方便接著輸入下一間 */
+document.getElementById("addRoom").addEventListener("click", () => {
+  document.getElementById("roomName").value = "";
+});
+
+
+
+/* =========================================================
+   圖層連動選取
+========================================================= */
+
+let _lastLayerSel = "";
+
+function markSelected(listEl, items, selId) {
+
+  Array.from(listEl.children).forEach((el, i) => {
+    el.classList.toggle(
+      "selected",
+      !!(items[i] && items[i].id === selId)
+    );
+  });
+
+}
+
+function syncLayerSelection() {
+
+  markSelected(windowList, windows, selectedWindowId);
+  markSelected(doorList, doors, selectedDoorId);
+
+  const key = [selectedRoomId, selectedWindowId, selectedDoorId].join("|");
+
+  if (key === _lastLayerSel) return;
+
+  _lastLayerSel = key;
+
+  const el = document.querySelector(
+    "#roomList .selected, #windowList .selected, #doorList .selected"
+  );
+
+  if (!el) return;
+
+  /* 該圖層群組若被折疊，自動展開 */
+  el.closest(".section").classList.remove("collapsed");
+
+  /* 只捲動左側欄，讓選到的圖層進入視野 */
+  const sb = document.querySelector(".sidebar");
+  const r = el.getBoundingClientRect();
+  const sr = sb.getBoundingClientRect();
+
+  if (r.top < sr.top) {
+    sb.scrollTop -= (sr.top - r.top) + 8;
+  } else if (r.bottom > sr.bottom) {
+    sb.scrollTop += (r.bottom - sr.bottom) + 8;
+  }
+
+}
+
+
+/* =========================================================
+   畫布縮放
+========================================================= */
+
+let zoom = 1;
+
+const ZOOM_MIN = 0.4;
+const ZOOM_MAX = 4;
+
+function applyZoom() {
+
+  const box = document.querySelector(".canvas-box");
+
+  const w = SVG_W * zoom;
+  const h = SVG_H * zoom;
+
+  svg.style.width = w + "px";
+  svg.style.height = h + "px";
+
+  box.style.width = (w + 2) + "px";
+  box.style.height = (h + 2) + "px";
+  box.style.minWidth = (w + 2) + "px";
+  box.style.minHeight = (h + 2) + "px";
+  box.style.backgroundSize = (20 * zoom) + "px " + (20 * zoom) + "px";
+
+  document.getElementById("zoomLabel").textContent =
+    Math.round(zoom * 100) + "%";
+
+}
+
+/* 以指定的螢幕座標為中心縮放（預設為可視區中心） */
+function setZoom(newZoom, clientX, clientY) {
+
+  const wrap = document.querySelector(".canvas-wrap");
+  const rect = wrap.getBoundingClientRect();
+
+  const ax = clientX === undefined ? rect.width / 2 : clientX - rect.left;
+  const ay = clientY === undefined ? rect.height / 2 : clientY - rect.top;
+
+  const old = zoom;
+
+  zoom = clamp(newZoom, ZOOM_MIN, ZOOM_MAX);
+
+  if (zoom === old) return;
+
+  const contentX = (wrap.scrollLeft + ax) / old;
+  const contentY = (wrap.scrollTop + ay) / old;
+
+  applyZoom();
+
+  wrap.scrollLeft = contentX * zoom - ax;
+  wrap.scrollTop = contentY * zoom - ay;
+
+}
+
+document.getElementById("zoomIn")
+  .addEventListener("click", () => setZoom(zoom * 1.2));
+
+document.getElementById("zoomOut")
+  .addEventListener("click", () => setZoom(zoom / 1.2));
+
+document.getElementById("zoomReset")
+  .addEventListener("click", () => setZoom(1));
+
+/* Ctrl + 滾輪縮放（以滑鼠位置為中心） */
+document.querySelector(".canvas-wrap").addEventListener(
+  "wheel",
+  evt => {
+    if (!evt.ctrlKey) return;
+    evt.preventDefault();
+    setZoom(zoom * (evt.deltaY < 0 ? 1.1 : 1 / 1.1), evt.clientX, evt.clientY);
+  },
+  { passive: false }
+);
+
+
+applyZoom();
+updateHouse();
+updateModeButtons();
+
+</script>
+
+<script>
+/* =========================================================
+   五邊形編輯（切角）— 覆寫／擴充既有函式
+   物件：house.cut / room.cut = { corner:'tl|tr|bl|br', cx, cy }（cm，被切掉的水平／垂直量）
+========================================================= */
+house.cut = null;
+
+let pentHover = null;   /* {kind,id,corner} */
+let pentSel = null;
+
+const PENT_NAMES = { tl: "左上角", tr: "右上角", bl: "左下角", br: "右下角" };
+
+function geomOf(kind, obj) {
+  const s = house.scale;
+  if (kind === "house") return { L: house.x, T: house.y, W: house.w * s, H: house.h * s, cut: house.cut };
+  return { L: obj.x, T: obj.y, W: obj.w * s, H: obj.h * s, cut: obj.cut };
+}
+
+/* 多邊形頂點（依實際比例） */
+function shapePts(g) {
+  const { L, T, W, H } = g, R = L + W, B = T + H, c = g.cut, s = house.scale;
+  const cx = c ? c.cx * s : 0, cy = c ? c.cy * s : 0, k = c ? c.corner : "";
+  const P = [];
+  if (k === "tl") P.push([L, T + cy], [L + cx, T]); else P.push([L, T]);
+  if (k === "tr") P.push([R - cx, T], [R, T + cy]); else P.push([R, T]);
+  if (k === "br") P.push([R, B - cy], [R - cx, B]); else P.push([R, B]);
+  if (k === "bl") P.push([L + cx, B], [L, B - cy]); else P.push([L, B]);
+  return P.map(p => p.join(",")).join(" ");
+}
+
+/* 牆段：origin(ox,oy)=原始角落，沿方向(dx,dy)從 s0 到 s1 為實際存在的牆 */
+function wallsOf(type, id, g) {
+  const { L, T, W, H } = g, R = L + W, B = T + H, c = g.cut, s = house.scale;
+  const cx = c ? c.cx * s : 0, cy = c ? c.cy * s : 0, k = c ? c.corner : "";
+  const mk = (wall, ox, oy, dx, dy, s0, s1) => ({
+    type, id, wall, ox, oy, dx, dy, s0, s1,
+    x1: ox + dx * s0, y1: oy + dy * s0, x2: ox + dx * s1, y2: oy + dy * s1
+  });
+  const w = [
+    mk("top", L, T, 1, 0, k === "tl" ? cx : 0, W - (k === "tr" ? cx : 0)),
+    mk("bottom", L, B, 1, 0, k === "bl" ? cx : 0, W - (k === "br" ? cx : 0)),
+    mk("left", L, T, 0, 1, k === "tl" ? cy : 0, H - (k === "bl" ? cy : 0)),
+    mk("right", R, T, 0, 1, k === "tr" ? cy : 0, H - (k === "br" ? cy : 0))
+  ];
+  if (c) {
+    const d = {
+      tl: [L + cx, T, L, T + cy], tr: [R - cx, T, R, T + cy],
+      bl: [L + cx, B, L, B - cy], br: [R - cx, B, R, B - cy]
+    }[k];
+    const len = Math.hypot(d[2] - d[0], d[3] - d[1]);
+    w.push(mk("diag", d[0], d[1], (d[2] - d[0]) / len, (d[3] - d[1]) / len, 0, len));
+  }
+  return w;
+}
+
+function getAllWalls() {
+  const r = wallsOf("house", "house", geomOf("house"));
+  rooms.forEach(rm => r.push(...wallsOf("room", rm.id, geomOf("room", rm))));
+  return r;
+}
+
+function findNearestWall(x, y) {
+  let best = null, bd = 25;
+  getAllWalls().forEach(w => {
+    if (w.s1 - w.s0 <= 0) return;
+    const t = (x - w.ox) * w.dx + (y - w.oy) * w.dy;
+    if (t < w.s0 - 20 || t > w.s1 + 20) return;
+    const c = clamp(t, w.s0, w.s1);
+    const d = Math.hypot(x - (w.ox + w.dx * c), y - (w.oy + w.dy * c));
+    if (d < bd) { bd = d; best = { ...w, position: c }; }
+  });
+  return best;
+}
+
+function findWallOf(item) {
+  return getAllWalls().find(w =>
+    w.type === item.parentType && w.id === item.parentId && w.wall === item.wall);
+}
+
+function clampC(w, c, len) {
+  return (w.s1 - w.s0 >= len) ? clamp(c, w.s0 + len / 2, w.s1 - len / 2) : (w.s0 + w.s1) / 2;
+}
+
+/* 沿牆（含斜牆）的帶狀矩形 */
+function bandPts(w, c, len, th) {
+  const nx = -w.dy, ny = w.dx, cx = w.ox + w.dx * c, cy = w.oy + w.dy * c;
+  return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) =>
+    [cx + w.dx * a * len / 2 + nx * b * th / 2, cy + w.dy * a * len / 2 + ny * b * th / 2].join(",")
+  ).join(" ");
+}
+
+/* ---------- 房屋 ---------- */
+function renderHouse() {
+  houseLayer.innerHTML = "";
+  const g = geomOf("house");
+  houseLayer.appendChild(createSVG("polygon", { points: shapePts(g), class: "house" }));
+
+  const wText = createSVG("text", { x: g.L + g.W / 2, y: g.T - 15, class: "dimension", "text-anchor": "middle" });
+  wText.textContent = `${Math.round(house.w)} cm`;
+  houseLayer.appendChild(wText);
+
+  const rx = g.L + g.W + 15, ry = g.T + g.H / 2;
+  const hText = createSVG("text", {
+    x: rx, y: ry, class: "dimension", "text-anchor": "middle", transform: `rotate(90 ${rx} ${ry})`
+  });
+  hText.textContent = `${Math.round(house.h)} cm`;
+  houseLayer.appendChild(hText);
+}
+
+/* ---------- 房間 ---------- */
+function renderResizeHandles(room) {
+  const w = roomPixelWidth(room), h = roomPixelHeight(room);
+  const pts = { nw: [room.x, room.y], ne: [room.x + w, room.y], sw: [room.x, room.y + h], se: [room.x + w, room.y + h] };
+  const map = { nw: "tl", ne: "tr", sw: "bl", se: "br" };
+  Object.entries(pts).forEach(([handle, [x, y]]) => {
+    if (room.cut && room.cut.corner === map[handle]) return;   /* 被切掉的角沒有控制點 */
+    const rect = createSVG("rect", { x: x - 6, y: y - 6, width: 12, height: 12, rx: 2, class: "resize-handle " + handle });
+    rect.addEventListener("pointerdown", evt => startResize(evt, room, handle));
+    uiLayer.appendChild(rect);
+  });
+}
+
+function renderRooms() {
+  roomLayer.innerHTML = "";
+  uiLayer.innerHTML = "";
+
+  rooms.forEach(room => {
+    const g = geomOf("room", room);
+    const sel = selectedRoomId === room.id;
+
+    const poly = createSVG("polygon", { points: shapePts(g), class: "room" + (sel ? " selected" : "") });
+    poly.dataset.id = room.id;
+    poly.addEventListener("pointerdown", evt => startRoomDrag(evt, room));
+    roomLayer.appendChild(poly);
+
+    const label = createSVG("text", { x: g.L + g.W / 2, y: g.T + g.H / 2, class: "room-label" });
+    label.textContent = room.name;
+    roomLayer.appendChild(label);
+
+    const size = createSVG("text", { x: g.L + g.W / 2, y: g.T + g.H / 2 + 20, class: "dimension", "text-anchor": "middle" });
+    size.textContent = `${Math.round(room.w)} × ${Math.round(room.h)} cm`;
+    roomLayer.appendChild(size);
+
+    if (sel) {
+      if (mode === "select") renderResizeHandles(room);
+      const hw = house.w * house.scale, hh = house.h * house.scale;
+      uiLayer.insertBefore(createSVG("line", { x1: house.x, y1: room.y, x2: house.x + hw, y2: room.y, class: "guide" }), uiLayer.firstChild);
+      uiLayer.insertBefore(createSVG("line", { x1: room.x, y1: house.y, x2: room.x, y2: house.y + hh, class: "guide" }), uiLayer.firstChild);
+    }
+  });
+}
+
+/* ---------- 窗戶（沿任意牆段，含斜邊） ---------- */
+function updateWindowPreview(evt) {
+  if (mode !== "window") return;
+
+  const p = svgPoint(evt);
+  const wall = findNearestWall(p.x, p.y);
+
+  windowLayer.querySelectorAll(".preview").forEach(el => el.remove());
+  previewWindow = null;
+
+  if (!wall) return;
+
+  const cm = Number(document.getElementById("windowW").value);
+  if (!cm || cm <= 0) return;
+
+  const len = windowPixelLength(cm);
+  const c = clampC(wall, wall.position, len);
+  const th = WALL_THICKNESS + 6;
+
+  previewWindow = { wall, center: c, lengthCm: cm };
+
+  windowLayer.appendChild(createSVG("polygon", { points: bandPts(wall, c, len, th), class: "window-preview preview" }));
+
+  const ax = wall.ox + wall.dx * (c - len / 2), ay = wall.oy + wall.dy * (c - len / 2);
+  const bx = wall.ox + wall.dx * (c + len / 2), by = wall.oy + wall.dy * (c + len / 2);
+  windowLayer.appendChild(createSVG("line", { x1: ax, y1: ay, x2: bx, y2: by, class: "window-preview-line preview" }));
+
+  const hor = wall.wall === "top" || wall.wall === "bottom" || wall.wall === "diag";
+  [[wall.s0, c - len / 2, "A"], [c + len / 2, wall.s1, "B"]].forEach(([s, e, name]) => {
+    const x1 = wall.ox + wall.dx * s, y1 = wall.oy + wall.dy * s;
+    const x2 = wall.ox + wall.dx * e, y2 = wall.oy + wall.dy * e;
+    windowLayer.appendChild(createSVG("line", { x1, y1, x2, y2, class: "window-distance-line preview" }));
+
+    const t = createSVG("text", {
+      class: "window-distance preview",
+      x: (x1 + x2) / 2 + (hor ? 0 : -12),
+      y: (y1 + y2) / 2 + (hor ? -14 : 0),
+      "text-anchor": hor ? "middle" : "end"
+    });
+    t.textContent = `${name} ${Math.round(Math.max(0, e - s) / house.scale)} cm`;
+    windowLayer.appendChild(t);
+  });
+}
+
+function placeWindow() {
+  if (mode !== "window" || !previewWindow) return;
+
+  const w = previewWindow;
+  const nw = {
+    id: uid("window"),
+    lengthCm: w.lengthCm,
+    parentType: w.wall.type,
+    parentId: w.wall.id,
+    wall: w.wall.wall,
+    center: w.center
+  };
+
+  windows.push(nw);
+  selectedWindowId = nw.id;
+  selectedRoomId = null;
+  previewWindow = null;
+
+  render();
+  showStatus("窗戶已建立");
+}
+
+function renderWindow(win) {
+  const wall = findWallOf(win);
+  if (!wall) return;
+
+  const len = windowPixelLength(win.lengthCm);
+  const c = clampC(wall, win.center, len);
+  const selected = selectedWindowId === win.id;
+
+  const el = createSVG("polygon", {
+    points: bandPts(wall, c, len, WALL_THICKNESS + 6),
+    class: "window" + (selected ? " selected" : "")
+  });
+  el.dataset.id = win.id;
+  el.addEventListener("click", evt => {
+    evt.stopPropagation();
+    if (mode === "select") {
+      selectedWindowId = win.id;
+      selectedRoomId = null;
+      render();
+    }
+  });
+
+  const line = createSVG("line", {
+    x1: wall.ox + wall.dx * (c - len / 2), y1: wall.oy + wall.dy * (c - len / 2),
+    x2: wall.ox + wall.dx * (c + len / 2), y2: wall.oy + wall.dy * (c + len / 2),
+    class: "window-line"
+  });
+  if (selected) line.style.stroke = "#d35400";
+
+  windowLayer.appendChild(el);
+  windowLayer.appendChild(line);
+}
+
+/* ---------- 門（沿任意牆段，含斜邊） ---------- */
+function updateDoorPreview(evt) {
+  if (mode !== "door") return;
+
+  windowLayer.querySelectorAll(".dpreview").forEach(el => el.remove());
+  previewDoor = null;
+
+  const p = svgPoint(evt);
+  const wall = findNearestWall(p.x, p.y);
+  if (!wall) return;
+
+  const cm = Number(document.getElementById("doorW").value);
+  if (!cm || cm <= 0) return;
+
+  const len = Math.min(doorPixelLength(cm), wall.s1 - wall.s0);
+  const c = clampC(wall, wall.position, len);
+
+  previewDoor = { wall, widthCm: cm, center: c / house.scale };
+
+  windowLayer.appendChild(createSVG("polygon", {
+    points: bandPts(wall, c, len, WALL_THICKNESS + 4),
+    class: "door-preview dpreview"
+  }));
+}
+
+function placeDoor() {
+  if (mode !== "door" || !previewDoor) return;
+
+  const d = previewDoor;
+  const nd = {
+    id: uid("door"),
+    widthCm: d.widthCm,
+    parentType: d.wall.type,
+    parentId: d.wall.id,
+    wall: d.wall.wall,
+    center: d.center
+  };
+
+  doors.push(nd);
+  selectedDoorId = nd.id;
+  selectedRoomId = null;
+  selectedWindowId = null;
+  previewDoor = null;
+
+  render();
+  showStatus("門已建立（可繼續點擊放置）");
+}
+
+function renderDoor(door) {
+  const wall = findWallOf(door);
+  if (!wall) return;
+
+  const len = Math.min(doorPixelLength(door.widthCm), wall.s1 - wall.s0);
+  const c = clampC(wall, door.center * house.scale, len);
+
+  const el = createSVG("polygon", {
+    points: bandPts(wall, c, len, WALL_THICKNESS + 4),
+    class: "door" + (selectedDoorId === door.id ? " selected" : "")
+  });
+
+  el.addEventListener("click", evt => {
+    if (mode !== "select") return;
+    evt.stopPropagation();
+    selectedDoorId = door.id;
+    selectedRoomId = null;
+    selectedWindowId = null;
+    render();
+  });
+
+  windowLayer.appendChild(el);
+}
+
+/* =========================================================
+   五邊形編輯模式
+========================================================= */
+
+const pentLayer = createSVG("g", {});
+svg.appendChild(pentLayer);
+
+function pentObj(sel) {
+  return sel.kind === "house" ? house : rooms.find(r => r.id === sel.id);
+}
+
+function cornerCandidates() {
+  const out = [];
+  const add = (kind, obj) => {
+    const id = kind === "house" ? "house" : obj.id;
+    const g = geomOf(kind, obj), R = g.L + g.W, B = g.T + g.H;
+    const pts = { tl: [g.L, g.T], tr: [R, g.T], bl: [g.L, B], br: [R, B] };
+    if (obj.cut) {
+      /* 已切角的角：改用斜邊中點作為可點選位置 */
+      const d = wallsOf(kind, id, g).find(w => w.wall === "diag");
+      pts[obj.cut.corner] = [(d.x1 + d.x2) / 2, (d.y1 + d.y2) / 2];
+    }
+    Object.entries(pts).forEach(([corner, [x, y]]) => out.push({ kind, id, corner, x, y, obj }));
+  };
+  add("house", house);
+  rooms.forEach(r => add("room", r));
+  return out;
+}
+
+function pentPick(p) {
+  let best = null, bd = 18;
+  cornerCandidates().forEach(c => {
+    const d = Math.hypot(c.x - p.x, c.y - p.y);
+    if (d <= bd) { bd = d; best = c; }   /* 同距離時，房間優先於房屋 */
+  });
+  return best;
+}
+
+const sameCorner = (a, b) => a && b && a.kind === b.kind && a.id === b.id && a.corner === b.corner;
+
+function drawPentUI() {
+  pentLayer.innerHTML = "";
+  if (mode !== "pentagon") return;
+
+  const cands = cornerCandidates();
+  const dot = (c, r, fill, stroke) => pentLayer.appendChild(createSVG("circle", {
+    cx: c.x, cy: c.y, r, fill, stroke: stroke || "none", "stroke-width": 2, "pointer-events": "none"
+  }));
+
+  cands.forEach(c => dot(c, 4, "rgba(35,103,168,.35)"));
+
+  const sel = cands.find(c => sameCorner(c, pentSel));
+  if (sel) dot(sel, 10, "rgba(211,84,0,.25)", "#d35400");
+
+  const hov = cands.find(c => sameCorner(c, pentHover));
+  if (hov) dot(hov, 10, "rgba(35,103,168,.3)", "#2367a8");
+}
+
+function pentRemaining() {
+  return {
+    h: parseFloat(document.getElementById("pentRemH").value),
+    v: parseFloat(document.getElementById("pentRemV").value)
+  };
+}
+
+function updatePentInfo() {
+  const o = pentSel && pentObj(pentSel);
+  const info = document.getElementById("pentInfo");
+  if (!o) return;
+  const r = pentRemaining();
+  const cx = o.w - r.h, cy = o.h - r.v;
+  info.textContent = (isFinite(cx) && isFinite(cy) && cx > 0 && cy > 0 && r.h > 0 && r.v > 0)
+    ? `斜邊：約 ${Math.round(Math.hypot(cx, cy))} cm（切除 ${Math.round(cx)} × ${Math.round(cy)} cm）`
+    : "斜邊：—";
+}
+
+function openPentForm() {
+  const form = document.getElementById("pentForm");
+  const hint = document.getElementById("pentHint");
+  const o = pentSel && pentObj(pentSel);
+
+  if (!o) {
+    pentSel = null;
+    form.style.display = "none";
+    hint.style.display = "";
+    return;
+  }
+
+  const k = pentSel.corner;
+  const name = pentSel.kind === "house" ? "房屋外框" : `房間「${o.name}」`;
+
+  document.getElementById("pentTitle").textContent = `${name}　${PENT_NAMES[k]}斜角設定`;
+  document.getElementById("pentLabH").textContent =
+    `${k[0] === "t" ? "上方" : "下方"}剩餘長度（原 ${Math.round(o.w)} cm）`;
+  document.getElementById("pentLabV").textContent =
+    `${k[1] === "l" ? "左側" : "右側"}剩餘長度（原 ${Math.round(o.h)} cm）`;
+
+  document.getElementById("pentRemH").value = Math.round(o.cut ? o.w - o.cut.cx : o.w * 0.8);
+  document.getElementById("pentRemV").value = Math.round(o.cut ? o.h - o.cut.cy : o.h * 0.8);
+  document.getElementById("pentRemove").style.display = o.cut ? "" : "none";
+
+  hint.style.display = "none";
+  form.style.display = "flex";
+  updatePentInfo();
+}
+
+document.getElementById("pentRemH").addEventListener("input", updatePentInfo);
+document.getElementById("pentRemV").addEventListener("input", updatePentInfo);
+
+document.getElementById("pentApply").addEventListener("click", () => {
+  const o = pentSel && pentObj(pentSel);
+  if (!o) return;
+
+  const r = pentRemaining();
+
+  if (!isFinite(r.h) || !isFinite(r.v)) { alert("請輸入有效的數字"); return; }
+  if (r.h <= 0 || r.v <= 0) { alert("剩餘長度必須大於 0 cm"); return; }
+  if (r.h >= o.w) { alert(`水平方向剩餘長度必須小於原邊長（${Math.round(o.w)} cm），否則不會產生斜角`); return; }
+  if (r.v >= o.h) { alert(`垂直方向剩餘長度必須小於原邊長（${Math.round(o.h)} cm），否則不會產生斜角`); return; }
+
+  o.cut = { corner: pentSel.corner, cx: o.w - r.h, cy: o.h - r.v };
+
+  render();
+  openPentForm();
+  showStatus("斜角已套用");
+});
+
+document.getElementById("pentRemove").addEventListener("click", () => {
+  const o = pentSel && pentObj(pentSel);
+  if (!o || !o.cut) return;
+
+  const pid = pentSel.kind === "house" ? "house" : o.id;
+  const onDiag = i => i.wall === "diag" && i.parentType === pentSel.kind && i.parentId === pid;
+
+  o.cut = null;
+  windows = windows.filter(i => !onDiag(i));
+  doors = doors.filter(i => !onDiag(i));
+
+  render();
+  openPentForm();
+  showStatus("斜角已移除");
+});
+
+/* 滑鼠移到角上 → 高亮 */
+svg.addEventListener("pointermove", evt => {
+  if (mode !== "pentagon") return;
+  const c = pentPick(svgPoint(evt));
+  pentHover = c ? { kind: c.kind, id: c.id, corner: c.corner } : null;
+  svg.style.cursor = c ? "pointer" : "crosshair";
+  drawPentUI();
+});
+
+/* 點擊角 → 開啟設定 */
+svg.addEventListener("click", evt => {
+  if (mode !== "pentagon") return;
+  const c = pentPick(svgPoint(evt));
+  if (!c) return;
+
+  if (c.obj.cut && c.obj.cut.corner !== c.corner) {
+    showStatus("此物件已設定斜角");
+    return;
+  }
+
+  pentSel = { kind: c.kind, id: c.id, corner: c.corner };
+  openPentForm();
+  drawPentUI();
+});
+
+/* 工具列按鈕：進入／結束 */
+document.getElementById("pentModeTop").addEventListener("click", () => {
+  if (mode === "pentagon") {
+    mode = "select";
+  } else {
+    mode = "pentagon";
+    selectedRoomId = null;
+    selectedWindowId = null;
+    selectedDoorId = null;
+    pentSel = null;
+    pentHover = null;
+  }
+  updateModeButtons();
+  render();
+  if (mode === "pentagon") showStatus("請點擊房屋或房間的角");
+});
+
+/* 包裝：模式按鈕狀態 */
+const _updateModeButtons = updateModeButtons;
+updateModeButtons = function () {
+  _updateModeButtons();
+
+  const btn = document.getElementById("pentModeTop");
+  const on = mode === "pentagon";
+
+  btn.classList.toggle("active", on);
+  btn.textContent = on ? "✕ 結束五邊形編輯" : "五邊形";
+  document.getElementById("panelPentagon").classList.toggle("show", on);
+
+  if (on) {
+    document.getElementById("toolPanel").style.display = "flex";
+    openPentForm();
+  } else {
+    pentSel = null;
+    pentHover = null;
+    svg.style.cursor = "";
+  }
+
+  drawPentUI();
+};
+
+/* 包裝：render（修正斜角範圍、重畫提示） */
+const _render = render;
+render = function () {
+  [house, ...rooms].forEach(o => {
+    if (o.cut) {
+      o.cut.cx = Math.min(o.cut.cx, o.w - 1);
+      o.cut.cy = Math.min(o.cut.cy, o.h - 1);
+    }
+  });
+  _render();
+  drawPentUI();
+};
+
+updateModeButtons();
+render();
+
+</script>
+<script>
+/* =========================================================
+   V5：匯出 / 拖曳門窗 / 自動儲存 / 清空畫布
+========================================================= */
+
+/* ---------- 1. 自動儲存與還原（必須最先執行，早於新的 render 包裝） ---------- */
+const STORE_KEY = "floorplan_tool_v1";
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!d || !d.house || !(d.house.w > 0) || !(d.house.h > 0) || !Array.isArray(d.rooms)) return;
+    Object.assign(house, d.house);
+    rooms = d.rooms;
+    windows = Array.isArray(d.windows) ? d.windows : [];
+    doors = Array.isArray(d.doors) ? d.doors : [];
+    document.getElementById("houseW").value = Math.round(house.w);
+    document.getElementById("houseH").value = Math.round(house.h);
+  } catch (e) { console.warn("還原失敗", e); }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ house, rooms, windows, doors }));
+  } catch (e) { console.warn("儲存失敗", e); }
+}
+
+let saveTimer = null;
+loadState();
+
+const _render2 = render;
+render = function () {
+  _render2();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 150);
+};
+window.addEventListener("beforeunload", saveState);
+
+
+/* ---------- 2. 拖曳窗戶／門（只能沿牆移動，可換牆） ---------- */
+const _renderDoor2 = renderDoor;
+renderDoor = function (door) {
+  const before = windowLayer.lastChild;
+  _renderDoor2(door);
+  const el = windowLayer.lastChild;
+  if (el && el !== before) el.dataset.did = door.id;
+};
+
+let dragItem = null;   /* {list:'windows'|'doors', id} */
+
+windowLayer.addEventListener("pointerdown", evt => {
+  if (mode !== "select") return;
+  const t = evt.target;
+  if (!t.classList) return;
+
+  if (t.classList.contains("window") && t.dataset.id) {
+    dragItem = { kind: "window", id: t.dataset.id };
+    selectedWindowId = t.dataset.id;
+    selectedDoorId = null;
+  } else if (t.classList.contains("door") && t.dataset.did) {
+    dragItem = { kind: "door", id: t.dataset.did };
+    selectedDoorId = t.dataset.did;
+    selectedWindowId = null;
+  } else return;
+
+  selectedRoomId = null;
+  evt.preventDefault();
+  evt.stopPropagation();
+  render();
+});
+
+svg.addEventListener("pointermove", evt => {
+  if (!dragItem) return;
+
+  const item = (dragItem.kind === "window" ? windows : doors).find(i => i.id === dragItem.id);
+  if (!item) { dragItem = null; return; }
+
+  const p = svgPoint(evt);
+  const wall = findNearestWall(p.x, p.y);
+  if (!wall) return;
+
+  const isWin = dragItem.kind === "window";
+  const len = isWin ? windowPixelLength(item.lengthCm)
+                    : Math.min(doorPixelLength(item.widthCm), wall.s1 - wall.s0);
+  const c = clampC(wall, wall.position, len);
+
+  item.parentType = wall.type;
+  item.parentId = wall.id;
+  item.wall = wall.wall;
+  item.center = isWin ? c : c / house.scale;
+
+  render();
+});
+
+const stopItemDrag = () => { dragItem = null; };
+svg.addEventListener("pointerup", stopItemDrag);
+document.addEventListener("pointerup", stopItemDrag);
+
+
+/* ---------- 3. 匯出格局圖（PNG） ---------- */
+const EXPORT_PROPS = [
+  "fill", "stroke", "stroke-width", "stroke-dasharray", "opacity",
+  "font-size", "font-family", "font-weight", "text-anchor", "dominant-baseline"
+];
+
+function inlineStyles(src, dst) {
+  const cs = getComputedStyle(src);
+  EXPORT_PROPS.forEach(p => dst.style.setProperty(p, cs.getPropertyValue(p)));
+  for (let i = 0; i < src.children.length; i++) inlineStyles(src.children[i], dst.children[i]);
+}
+
+function exportPlan() {
+
+  if (!confirm("是否匯出格局圖？")) return;
+
+  /* 匯出時不要帶選取狀態 */
+  const keep = { r: selectedRoomId, w: selectedWindowId, d: selectedDoorId };
+  selectedRoomId = selectedWindowId = selectedDoorId = null;
+  render();
+
+  pentLayer.setAttribute("id", "pentLayer");
+  const clone = svg.cloneNode(true);
+  inlineStyles(svg, clone);
+
+  ["#uiLayer", "#pentLayer", ".preview", ".dpreview"].forEach(sel =>
+    clone.querySelectorAll(sel).forEach(el => el.remove())
+  );
+
+  /* 只輸出房屋範圍＋邊界 */
+  const hw = house.w * house.scale, hh = house.h * house.scale;
+  const vx = house.x - 70, vy = house.y - 50, vw = hw + 140, vh = hh + 100;
+  const S = 2;
+
+  clone.setAttribute("viewBox", `${vx} ${vy} ${vw} ${vh}`);
+  clone.setAttribute("width", vw * S);
+  clone.setAttribute("height", vh * S);
+  clone.removeAttribute("style");
+
+  const bg = createSVG("rect", { x: vx, y: vy, width: vw, height: vh, fill: "#ffffff" });
+  clone.insertBefore(bg, clone.firstChild);
+
+  const xml = new XMLSerializer().serializeToString(clone);
+
+  /* 還原選取狀態 */
+  selectedRoomId = keep.r; selectedWindowId = keep.w; selectedDoorId = keep.d;
+  render();
+
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = vw * S;
+    canvas.height = vh * S;
+    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(blob => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "格局圖.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      showStatus("格局圖已匯出");
+    }, "image/png");
+  };
+  img.onerror = () => alert("匯出失敗");
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
+}
+
+document.getElementById("exportBtn").addEventListener("click", exportPlan);
+
+
+/* ---------- 4. 清空畫布 ---------- */
+document.getElementById("clearBtn").addEventListener("click", () => {
+
+  if (!confirm("確定要清空畫布？\n所有房屋、房間、窗戶、門與已儲存的內容都會被刪除，且無法復原。")) return;
+
+  rooms = [];
+  windows = [];
+  doors = [];
+  house.cut = null;
+
+  selectedRoomId = selectedWindowId = selectedDoorId = null;
+  pentSel = null;
+  pentHover = null;
+  mode = "select";
+  activePanel = null;
+
+  document.getElementById("houseW").value = 1000;
+  document.getElementById("houseH").value = 800;
+
+  updateHouse();
+  updateModeButtons();
+
+  clearTimeout(saveTimer);
+  try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+
+  showStatus("畫布已清空");
+});
+
+render();
+
+</script>
+<script>
+/* =========================================================
+   V6：手機版（底部工具列、側邊欄收合、觸控操作）
+========================================================= */
+const mbSidebar = document.querySelector(".sidebar");
+const mbWrap = document.querySelector(".canvas-wrap");
+const mbMenuBtn = document.getElementById("menuBtn");
+const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
+
+/* ☰ 開關側邊欄 */
+mbMenuBtn.addEventListener("click", () => mbSidebar.classList.toggle("open"));
+
+/* 側邊欄開著時，點畫布 → 只收起側邊欄（不觸發畫布動作） */
+let mbIgnoreClickUntil = 0;
+
+mbWrap.addEventListener("pointerdown", e => {
+  if (!isMobile() || !mbSidebar.classList.contains("open")) return;
+  mbSidebar.classList.remove("open");
+  mbIgnoreClickUntil = Date.now() + 500;
+  e.preventDefault();
+  e.stopPropagation();
+}, true);
+
+mbWrap.addEventListener("click", e => {
+  if (Date.now() < mbIgnoreClickUntil) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+}, true);
+
+/* 觸控：窗戶／門／五邊形沒有「滑鼠移動」，按下時先更新預覽，放開時放置 */
+svg.addEventListener("pointerdown", e => {
+  if (e.pointerType === "mouse") return;
+  if (mode === "window") updateWindowPreview(e);
+  else if (mode === "door") updateDoorPreview(e);
+  else if (mode === "pentagon") {
+    const c = pentPick(svgPoint(e));
+    pentHover = c ? { kind: c.kind, id: c.id, corner: c.corner } : null;
+    drawPentUI();
+  }
+});
+
+svg.addEventListener("pointerup", e => {
+  if (e.pointerType === "mouse") return;
+  if (mode === "window") placeWindow();
+  else if (mode === "door") placeDoor();
+});
+
+/* 觸控：一般模式下，按住空白處／房屋底色拖曳 = 平移畫布 */
+let mbPan = null;
+
+svg.addEventListener("pointerdown", e => {
+  if (e.pointerType === "mouse" || mode !== "select") return;
+  if (!(e.target === svg || (e.target.classList && e.target.classList.contains("house")))) return;
+  mbPan = { x: e.clientX, y: e.clientY, l: mbWrap.scrollLeft, t: mbWrap.scrollTop };
+});
+
+document.addEventListener("pointermove", e => {
+  if (!mbPan) return;
+  mbWrap.scrollLeft = mbPan.l - (e.clientX - mbPan.x);
+  mbWrap.scrollTop = mbPan.t - (e.clientY - mbPan.y);
+});
+
+const mbEnd = () => { mbPan = null; };
+document.addEventListener("pointerup", mbEnd);
+
+/* 觸控被系統中斷時，結束所有拖曳 */
+svg.addEventListener("pointercancel", () => {
+  mbEnd();
+  stopRoomDrag();
+  stopResize();
+  stopItemDrag();
+});
+
+/* 手機初始縮放：盡量讓畫布寬度符合螢幕 */
+if (isMobile()) {
+  zoom = Math.max(ZOOM_MIN, Math.min(1, (mbWrap.clientWidth - 16) / SVG_W));
+  applyZoom();
+}
+
+</script>
+<script>
+/* V6.1：手機版縮放按鈕移到設定欄位上方 */
+(function () {
+  const zc = document.querySelector(".zoom-controls");
+  const tb = document.querySelector(".toolbar");
+  const zb = document.createElement("div");
+  zb.id = "zoomBar";
+  document.querySelector(".main").insertBefore(zb, document.getElementById("toolPanel"));
+
+  const place = () => (isMobile() ? zb : tb).appendChild(zc);
+
+  window.matchMedia("(max-width: 768px)").addEventListener("change", place);
+  place();
+})();
+
+</script>
+</body>
+</html>
